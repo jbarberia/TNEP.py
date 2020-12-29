@@ -24,6 +24,7 @@ class Parameters():
         assert set(default_col) <= set(df.columns)
 
         self.data = df
+        return self.data
 
 
     def generate_template(self, filename):

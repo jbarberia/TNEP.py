@@ -1,4 +1,6 @@
 import pfnet
+import numpy as np
+import pandas as pd
 from optalg.opt_solver import OptSolverCbcCMD
 from optmod import VariableDict, Problem, minimize
 
@@ -11,7 +13,7 @@ class TNEP():
     def __init__(self):
         pass
 
-    def solve(self, nets, parameters):
+    def solve(self, nets, parameters: pd.DataFrame):
         """
         Resuelve el TNEP, devuelve un listado de PFNET Networks
         con la solucion
@@ -19,8 +21,8 @@ class TNEP():
 
         # Pre-Proceso del caso
         scenarios = self.copy_networks(nets)
-        br_oos = self.create_branches(scenarios, parameters)
-        self.create_rating(scenarios.values())
+        self.create_branches(scenarios, parameters)
+        self.create_rating(scenarios)
 
         # Indices
         bus_indices = []
@@ -29,12 +31,13 @@ class TNEP():
         br_indices_oos = []
         for i, net in scenarios.items():
             bus_indices.extend([(bus.index, i) for bus in net.buses])
-            gen_indices.extend([(bus.index, i) for gen in net.generators if gen.is_slack])
+            gen_indices.extend([(gen.index, i) for gen in net.generators if gen.is_slack])
             br_indices.extend([(br.index, i) for br in net.branches])
-            br_indices_oos.extend([(bus.index, i) for br in net.branches if br in br_oos]) # TODO: better independent of scenario
+            br_indices_oos.extend([(bus.index, i) for br in net.branches if not br.is_in_service()]) # TODO: better independent of scenario
 
         # Variables
         w = VariableDict(bus_indices, name='w')
+        r = VariableDict(bus_indices, name='r')
         pg = VariableDict(gen_indices, name='pg')
         f = VariableDict(br_indices, name='f')
         f_ = VariableDict(br_indices, name='vio')
@@ -43,6 +46,9 @@ class TNEP():
 
         # Objective
         # TODO: Deberia summarse un par de variables
+        C1 = 1e3
+        C2 = 1e3
+
         phi = 0
         # Costo de Linea
         for i, x_var in x.values():
@@ -51,8 +57,8 @@ class TNEP():
         for violation in f_.values():
             phi += violation * C1
         # Recorte de demanda
-        for rec in r.values():
-            phi += r * C2
+        for r_shed in r.values():
+            phi += r_shed * C2
 
         # Constraints
         constraints = []
@@ -83,7 +89,7 @@ class TNEP():
 
                 rate = br.get_rating('A') # TODO: Estaria bueno que se puedan usar los limites A, B, C
 
-                if br in br_oos: # O sino con los indices
+                if not br.is_in_service(): # O sino con los indices
                     M = 1e2 # big M
                     constraints.extend([
                         f[ckt, i] + br.b*(w[k, i] - w[m, i]) <= (1 - x[ckt])*M,
@@ -135,17 +141,40 @@ class TNEP():
         return copy_nets
 
 
-    def create_branches(self, nets, parameters):
+    def create_branches(self, nets, parameters: pd.DataFrame):
         """
         Crea las ramas y las suma a cada PFNET Networks
+        nets: Diccionario con PFNET Networks
+        parameters: DataFrame con los datos de las lineas
         """
-        # TODO: Ver en que forma ingresar los parametros
-        # Quiza sea mejor un df y sumarle una columna con los nuevos indices de las lineas
-        return NotImplemented
+
+        for net in nets.values():
+            new_branches = []
+            for index, row in parameters.iterrows():
+                new_br = pfnet.Branch()
+                new_br.in_service = False
+
+                new_br.bus_k = net.get_bus_from_number(row['Bus k'])
+                new_br.bus_m = net.get_bus_from_number(row['Bus m'])
+
+                den = row['x']**2 + row['r']**2
+                new_br.g = row['r'] / den
+                new_br.b = -row['x'] / den
+
+                new_br.b_k = new_br.b_m = row['b'] / 2
+                new_branches.append(new_br)
+
+            net.add_branches(new_branches)
+            net.update_properties()
 
     def create_rating(self, nets):
         """
         Impone un limite termico razonable
         a cada linea que no tiene rating
         """
-        return NotImplemented
+
+        for net in nets.values():
+            for br in net.branches:
+                if br.get_rating('A') <= 0.:
+                    delta_max = np.deg2rad(30)
+                    br.ratingA = np.sin(delta_max) * br.b

@@ -1,4 +1,7 @@
 import os
+import pytest
+import pandas as pd
+from data import parameters
 from tnep import Parameters
 
 def test_generate_templates():
@@ -11,3 +14,10 @@ def test_generate_templates():
     assert default_col <= set(parameters.data.columns)
 
     os.remove('tmp.xlsx')
+
+@pytest.mark.parametrize('filename', parameters)
+def test_parameters(filename):
+    df_param = Parameters().read_excel(filename)
+
+    assert isinstance(df_param, pd.DataFrame)
+
