@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='tnep',
@@ -6,5 +6,5 @@ setup(
     description='module to solve tnep and display useful information',
     author='Juan Luis Barberia',
     author_email='jbarberia@est.frba.utn.edu.ar',
-    packages=['tnep']
+    packages=find_packages()
 )

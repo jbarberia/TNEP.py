@@ -12,3 +12,7 @@ venv
 
 # egg
 *.egg*
+
+# builds
+build
+dist

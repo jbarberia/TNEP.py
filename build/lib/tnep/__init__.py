@@ -1,2 +1,2 @@
 from .parser import Parser
-from .nr import NR
+from .prob import NR

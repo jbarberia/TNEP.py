@@ -29,3 +29,4 @@ def test_parser_read_multiple():
     nets = list(map(parser.parse, data))
     
     assert len(nets) == len(data)
+    
