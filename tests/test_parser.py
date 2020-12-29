@@ -1,19 +1,17 @@
 import os
 import pytest
 import pfnet
-from unittest import TestCase
+from data import cases
 from tnep import Parser
+from unittest import TestCase
 
-data_path = os.path.dirname(os.path.realpath(__file__)) + '\\data'
-data = [data_path + '\\' + case for case in os.listdir(data_path)]
-
-@pytest.mark.parametrize('filename', data)
+@pytest.mark.parametrize('filename', cases)
 def test_parser_read(filename):
     net = Parser().parse(filename)
     
     assert isinstance(net, pfnet.Network)
 
-@pytest.mark.parametrize('filename', data)
+@pytest.mark.parametrize('filename', cases)
 def test_parser_write(filename):
     parser = Parser()
     net1 = parser.parse(filename)
@@ -26,7 +24,7 @@ def test_parser_write(filename):
 
 def test_parser_read_multiple():
     parser = Parser()
-    nets = list(map(parser.parse, data))
+    nets = list(map(parser.parse, cases))
     
-    assert len(nets) == len(data)
+    assert len(nets) == len(cases)
     

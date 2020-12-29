@@ -1,12 +1,11 @@
 import os
 import pytest
+from data import cases
 from tnep import Parser
 from tnep import NR
 
-data_path = os.path.dirname(os.path.realpath(__file__)) + '\\data'
-data = [data_path + '\\' + case for case in os.listdir(data_path)]
 
-@pytest.mark.parametrize('filename', data)
+@pytest.mark.parametrize('filename', cases)
 def test_ac_solve(filename):
     net = Parser().parse(filename)
     mis1 = net.bus_P_mis
@@ -15,7 +14,7 @@ def test_ac_solve(filename):
     
     assert abs(mis1) >= abs(mis2)
 
-@pytest.mark.parametrize('filename', data)
+@pytest.mark.parametrize('filename', cases)
 def test_dc_solve(filename):
     mis = lambda x: x.P
     net = Parser().parse(filename)
