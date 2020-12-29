@@ -1,0 +1,14 @@
+# vscode
+.vscode
+
+# enviroments
+venv
+
+# PyTests
+.pytest_cache
+
+# Cache
+*__pycache__*
+
+# egg
+*.egg*
