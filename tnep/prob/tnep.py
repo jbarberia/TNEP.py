@@ -125,8 +125,9 @@ class TNEP():
                     ])
 
         p = Problem(minimize(phi), constraints)
-        p.solve(solver=OptSolverCbcCMD(), parameters={'quiet': False})
-
+        p.solve(solver=OptSolverCbcCMD(), parameters={'quiet': False}) # ImportError: cbc cmd not available
+        # Ideas: Hacer un fork de optalg y hacer que el wrapper funcione en windows
+       
         # Update networks
         # TODO complete it
         
