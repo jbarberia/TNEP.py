@@ -1,4 +1,6 @@
 git+git://github.com/jbarberia/PFNET.py/@dev
+optmod
+optalg
 numpy==1.19.3
 cython>=0.20.1
 pandas

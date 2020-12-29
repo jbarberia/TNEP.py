@@ -7,8 +7,6 @@ from tnep import Parser
 data_path = os.path.dirname(os.path.realpath(__file__)) + '\\data'
 data = [data_path + '\\' + case for case in os.listdir(data_path)]
 
-print(data)
-
 @pytest.mark.parametrize('filename', data)
 def test_parser_read(filename):
     net = Parser().parse(filename)
