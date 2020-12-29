@@ -11,4 +11,4 @@ for filename in os.listdir(data_path):
         cases.append(data_path + '\\' + filename)
 
     if ext.lower() in ['.xlsx', '.xls']:
-        cases.append(data_path + '\\' + filename)
+        parameters.append(data_path + '\\' + filename)
