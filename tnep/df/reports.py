@@ -46,15 +46,15 @@ class Reports():
         """
         Reporte de todas las barras
         """
-        df = pd.DataFrame(columns=['Number', 'Name', 'V', '°', 'V Max', 'V min'])
+        df = pd.DataFrame(columns=['Number', 'Name', 'V', '°', 'V Max', 'V Min'])
         for bus in reversed(net.buses):
             df = df.append({
                     "Number" : bus.number,
                     "Name" : bus.name,
                     "V" : bus.v_mag,
                     "°" : bus.v_ang,
-                    "V_max" : bus.get_v_max(),
-                    "V_min" : bus.get_v_min()
+                    "V Max" : bus.get_v_max(),
+                    "V Min" : bus.get_v_min()
                 }, ignore_index=True)
 
         return df
@@ -69,11 +69,11 @@ class Reports():
                     "Bus" : gen.bus.number,
                     "ID" : gen.name,
                     "P" : gen.P * net.base_power,
-                    "P_min" : gen.P_min * net.base_power,
-                    "P_max" : gen.P_max * net.base_power,
+                    "P min" : gen.P_min * net.base_power,
+                    "P max" : gen.P_max * net.base_power,
                     "Q" : gen.Q * net.base_power,
-                    "Q_min" : gen.Q_min * net.base_power,
-                    "Q_max" : gen.Q_max * net.base_power,
+                    "Q min" : gen.Q_min * net.base_power,
+                    "Q max" : gen.Q_max * net.base_power,
                 }, ignore_index=True)
 
         return df

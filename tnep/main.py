@@ -20,7 +20,6 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         # Botones Output
         self.generarResultados.clicked.connect(self.writeCases)
 
-
         # Ribbon - File
         self.actionSalir.triggered.connect(self.exit)
 
@@ -40,6 +39,7 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         # Power System Optimization Back End
         self.parser = Parser()
         self.params = Parameters()
+        self.report = Reports()
         self.NR = NR()
         self.TNEP = TNEP()
 
@@ -116,19 +116,19 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def runPFNR(self):
-        map(self.NR.solve_ac, self.scenarios.values())
         for fileName, net in self.scenarios.items():
+            self.NR.solve_ac(net)
             self.printOutputBar(fileName + ":")
-            self.printOutputBar(f"P mis. : {net.bus_P_mis*net.base_power} MW")
-            self.printOutputBar(f"Q mis. : {net.bus_Q_mis*net.base_power} MVAr")
+            self.printOutputBar("P mis. : {:.4f} MW".format(net.bus_P_mis*net.base_power))
+            self.printOutputBar("P mis. : {:.4f} MVAr".format(net.bus_Q_mis*net.base_power))
 
 
     def runPFDC(self):
-        map(self.NR.solve_dc, self.scenarios.values())
         for fileName, net in self.scenarios.items():
+            self.NR.solve_dc(net)
             self.printOutputBar(fileName + ":")
-            self.printOutputBar(f"P mis. : {net.bus_P_mis*net.base_power} MW")
-            self.printOutputBar(f"Q mis. : {net.bus_Q_mis*net.base_power} MVAr")
+            self.printOutputBar("P mis. : {:.4f} MW".format(net.bus_P_mis*net.base_power))
+            self.printOutputBar("P mis. : {:.4f} MVAr".format(net.bus_Q_mis*net.base_power))
 
 
     def runPFFS(self):
@@ -141,13 +141,16 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def reports(self, component):
-        if component == "buses":
-            _, out_log = self.PSOPT.voltage_report()
-        if component == "generators":
-            _, out_log = self.PSOPT.generator_report()
-        if component == "branches":
-            _, out_log = self.PSOPT.branch_report()
-        self.printOutputBar(out_log)
+        for net in self.scenarios.values():
+            if component == "buses":
+                df = self.report.buses(net)
+            if component == "generators":
+                df = self.report.generators(net)
+            if component == "branches":
+                df = self.report.branches(net)
+
+            self.printOutputBar(df.to_string())
+
 
     def runTNEP(self):
         rate_percentage = float(self.ratingPercentage.text())
