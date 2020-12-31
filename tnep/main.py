@@ -1,3 +1,4 @@
+import os
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QFileDialog
 from tnep import NR, TNEP, Parser, Parameters, Reports
@@ -16,6 +17,7 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Botones Optimizar
         self.Optimizar.clicked.connect(self.runTNEP)
+        self.reporteTNEP.clicked.connect(self.TNEPReport)
 
         # Botones Output
         self.generarResultados.clicked.connect(self.writeCases)
@@ -39,6 +41,8 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Scenarios y memoria para DF
         self.scenarios = {}
+        self.solved_nets = {}
+        self.tnepReport = None
         self.lastReport = []
 
         # Power System Optimization Back End
@@ -74,9 +78,6 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
             self.actionBarras.setEnabled(True)
             self.actionGeneradores.setEnabled(True)
             self.actionLineas.setEnabled(True)
-
-            if self.params.data != None:
-                self.Optimizar.setEnabled(True)
         
 
     def addRAW(self):
@@ -112,6 +113,7 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
             self.params.read_excel(fileName)
             self.printOutputBar("Parametros Añadidos: " + fileName)
             self.excelCandidatos.setText(fileName)
+            self.Optimizar.setEnabled(True)
             self.enableButtons()
         except (AssertionError, KeyError):
             self.printOutputBar("Parametros Invalidos: " + fileName)
@@ -189,8 +191,55 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         ens = float(self.ENS.text())
         flow_penalty = float(self.flowPenalty.text())
 
-        _, out_log = self.PSOPT.solveTLEP(rate_percentage, ens, flow_penalty)
-        self.printOutputBar(out_log)
+        # PreProceso
+        pre_dfs = []
+        for net in self.scenarios.values():
+            self.NR.solve_ac(net)
+            df = self.report.branches(net)
+            pre_dfs.append(df)
+
+        solved_nets = self.TNEP.solve(
+            self.scenarios.values(),
+            self.params.data,
+            rate_percentage,
+            flow_penalty,
+            ens
+        )
+
+        self.printOutputBar('Optimizacion Exitosa')
+        
+        # Escribir las redes en objeto
+        for fileName, net in zip(self.scenarios.keys(), solved_nets):
+            name, ext = os.path.splitext(fileName)
+            self.solved_nets[name+'-Resuelto'+ext] = net
+
+        # PostProceso
+        pos_dfs = []
+        for net in solved_nets:
+            self.NR.solve_ac(net)
+            df = self.report.branches(net)
+            pos_dfs.append(df)
+        
+        dfs = []
+        for pre_df, pos_df in zip(pre_dfs, pos_dfs):
+
+            pre_df = pre_df.rename(columns={'Carga %': 'Pre. Opt. Carga %'})
+            pos_df = pos_df.rename(columns={'Carga %': 'Pos. Opt. Carga %'})
+
+            df = pos_df.loc[:, ['Bus k', 'Bus m', 'Pos. Opt. Carga %']]
+            df['Pre. Opt. Carga %'] = pre_df.loc[:, ['Pre. Opt. Carga %']]
+
+            dfs.append(df)
+
+        self.tnepReport = dfs
+        self.reporteTNEP.setEnabled(True)
+
+    def TNEPReport(self):
+        for df, filename in zip(self.tnepReport, self.solved_nets):
+            self.printOutputBar(filename + ":")
+            self.printOutputBar(df.to_string())
+        self.lastReport = self.tnepReport
+        
 
     def writeCases(self):
         if self.radioButtonRAW.isChecked():

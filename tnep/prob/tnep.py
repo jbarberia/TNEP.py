@@ -12,7 +12,7 @@ class TNEP():
     def __init__(self):
         pass
 
-    def solve(self, nets, parameters: pd.DataFrame):
+    def solve(self, nets, parameters: pd.DataFrame, rate_factor, penalty, ens):
         """
         Resuelve el TNEP, devuelve un listado de PFNET Networks
         con la solucion
@@ -57,9 +57,6 @@ class TNEP():
                 for i in br_indices_oos}
         
         # Objective
-        penalty = 1e2
-        ens = 1e2
-
         prob += (sum(c * x[idx] for idx, c in zip(candidates['index'], candidates['Costo'])) 
                  + penalty * sum(vio for vio in f_.values())
                  + ens * sum(l_shed for l_shed in r.values()))
@@ -85,7 +82,7 @@ class TNEP():
                 ckt = br.index
                 k, m = br.bus_k.index, br.bus_m.index
 
-                rate = br.get_rating('A')
+                rate = br.get_rating('A') * rate_factor
                 
                 # Ecuaciones de flujo
                 if br.is_in_service():
