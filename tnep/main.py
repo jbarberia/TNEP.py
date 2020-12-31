@@ -233,6 +233,7 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.tnepReport = dfs
         self.reporteTNEP.setEnabled(True)
+        self.generarResultados.setEnabled(True)
 
     def TNEPReport(self):
         for df, filename in zip(self.tnepReport, self.solved_nets):
@@ -242,13 +243,15 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         
 
     def writeCases(self):
-        if self.radioButtonRAW.isChecked():
-            _, out_log = self.PSOPT.writeScenarios("raw")   
+        name, ext = os.path.splitext(filename)
+        for filename, net in sel.solved_nets.items():
+            if self.radioButtonRAW.isChecked():
+                filename = name + '.raw'
+            if self.radioButtonMATPOWER.isChecked():
+                filename = name + '.m'
+            self.parser.write(filename, net)
+            self.printOutputBar("Caso generado en: " + filename)
 
-        if self.radioButtonMATPOWER.isChecked():
-            _, out_log = self.PSOPT.writeScenarios("matpower")
-
-        self.printOutputBar(out_log)
 
     def exit(self):
         close = QtWidgets.QMessageBox.question(self, "Salir",
