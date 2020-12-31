@@ -114,19 +114,31 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
     def printOutputBar(self, log):
         self.textOutputBar.append(log)
 
+
     def runPFNR(self):
-        _, out_log = self.PSOPT.solveNR()
-        for log in out_log:
-            self.printOutputBar(log)
+        map(self.NR.solve_ac, self.scenarios.values())
+        for fileName, net in self.scenarios.items():
+            self.printOutputBar(fileName + ":")
+            self.printOutputBar(f"P mis. : {net.bus_P_mis*net.base_power} MW")
+            self.printOutputBar(f"Q mis. : {net.bus_Q_mis*net.base_power} MVAr")
+
 
     def runPFDC(self):
-        _, out_log = self.PSOPT.solveDC()
-        for log in out_log:
-            self.printOutputBar(log)
+        map(self.NR.solve_dc, self.scenarios.values())
+        for fileName, net in self.scenarios.items():
+            self.printOutputBar(fileName + ":")
+            self.printOutputBar(f"P mis. : {net.bus_P_mis*net.base_power} MW")
+            self.printOutputBar(f"Q mis. : {net.bus_Q_mis*net.base_power} MVAr")
+
 
     def runPFFS(self):
-        _, out_log = self.PSOPT.flat_start()
-        self.printOutputBar(out_log)
+        for net in self.scenarios.values():
+            for bus in net.buses:
+                if not bus.is_v_set_regulated():
+                    bus.v_mag = 1.0
+                bus.v_ang = 0.0
+        self.printOutputBar("Tensiones seteadas en 1.0 /_ 0.0°")
+
 
     def reports(self, component):
         if component == "buses":
