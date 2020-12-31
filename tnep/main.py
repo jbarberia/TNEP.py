@@ -67,10 +67,9 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
             self.actionLineas.setEnabled(False)
 
             self.Optimizar.setEnabled(False)
+            self.reporteTNEP.setEnabled(False)
 
         else:
-            self.generarResultados.setEnabled(True)
-
             self.actionResolver_NR.setEnabled(True)
             self.actionResolver_DC.setEnabled(True)
             self.actionForzar_FS.setEnabled(True)
