@@ -20,7 +20,7 @@ class Parameters():
         df = pd.read_excel(filename, sheet_name=sheet)
 
         # Check Columns
-        default_col = ['Bus k', 'Bus m', 'r', 'x', 'b', 'Rating', 'Cost']
+        default_col = ['Bus k', 'Bus m', 'r', 'x', 'b', 'Rating', 'Costo']
         assert set(default_col) <= set(df.columns)
 
         self.data = df
@@ -34,7 +34,7 @@ class Parameters():
         filename = self.check_name(filename)
 
         # empty template
-        columns = ['Bus k', 'Bus m', 'r', 'x', 'b', 'Rating', 'Cost']
+        columns = ['Bus k', 'Bus m', 'r', 'x', 'b', 'Rating', 'Costo']
         df = pd.DataFrame(columns=columns)
 
         # to excel

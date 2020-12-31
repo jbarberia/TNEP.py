@@ -1,8 +1,7 @@
 import pfnet
 import numpy as np
 import pandas as pd
-from optalg.opt_solver import OptSolverCbcCMD
-from optmod import VariableDict, Problem, minimize
+from pulp import LpProblem, LpVariable, LpMinimize, value, PULP_CBC_CMD
 
 
 class TNEP():
@@ -21,117 +20,138 @@ class TNEP():
 
         # Pre-Proceso del caso
         scenarios = self.copy_networks(nets)
-        self.create_branches(scenarios, parameters)
+        candidates = self.create_branches(scenarios, parameters) # Se suma col index
         self.create_rating(scenarios)
 
         # Indices
         bus_indices = []
+        load_bus_indices = []
         gen_indices = []
         br_indices = []
-        br_indices_oos = []
         for i, net in scenarios.items():
             bus_indices.extend([(bus.index, i) for bus in net.buses])
+            load_bus_indices.extend([(bus.index, i) for bus in net.buses if len(bus.loads) > 0])
             gen_indices.extend([(gen.index, i) for gen in net.generators if gen.is_slack])
             br_indices.extend([(br.index, i) for br in net.branches])
-            br_indices_oos.extend([(bus.index, i) for br in net.branches if not br.is_in_service()]) # TODO: better independent of scenario
+        br_indices_oos = list(candidates['index'])
+
+        # Instaciate problem
+        prob = LpProblem("TLEP", LpMinimize)
 
         # Variables
-        w = VariableDict(bus_indices, name='w')
-        r = VariableDict(bus_indices, name='r')
-        pg = VariableDict(gen_indices, name='pg')
-        f = VariableDict(br_indices, name='f')
-        f_ = VariableDict(br_indices, name='vio')
-        phi_ = VariableDict(br_indices_oos, name='phi')
-        x = VariableDict([i for i, _ in br_indices_oos], name='x')
-
+        w = {(idx, i): LpVariable(f'w_{idx}_{i}') for (idx, i) in bus_indices}
+        pg = {(idx, i): LpVariable(f'pg_{idx}_{i}') for (idx, i) in gen_indices}
+        f = {(idx, i): LpVariable(f'f_{idx}_{i}') for (idx, i) in br_indices}
+        f_ = {(idx, i): LpVariable(f'vio_{idx}_{i}', lowBound=0.) 
+                                for idx, i in br_indices}
+        phi_ = {(br.index, i): LpVariable(f'phi_{br.index}_{i}', lowBound=0.) 
+                                  for (i, net) in scenarios.items()
+                                  for br in net.branches
+                                  if not br.is_in_service()}
+        r = {(idx, i): LpVariable(f'r_{idx}_{i}', lowBound=0.) for (idx, i) in load_bus_indices}
+        x = {i: LpVariable(
+                f'x_{i}',
+                cat='Integer',
+                lowBound=0,
+                upBound=1) 
+                for i in br_indices_oos}
+        
         # Objective
-        # TODO: Deberia summarse un par de variables
-        C1 = 1e3
-        C2 = 1e3
+        penalty = 1e2
+        ens = 1e2
 
-        phi = 0
-        # Costo de Linea
-        for i, x_var in x.values():
-            phi += parameters[index == i] * x_var
-        # Exceso del limite termico
-        for violation in f_.values():
-            phi += violation * C1
-        # Recorte de demanda
-        for r_shed in r.values():
-            phi += r_shed * C2
+        prob += (sum(c * x[idx] for idx, c in zip(candidates['index'], candidates['Costo'])) 
+                 + penalty * sum(vio for vio in f_.values())
+                 + ens * sum(l_shed for l_shed in r.values()))
 
         # Constraints
-        constraints = []
         for i, net in scenarios.items():
-            
-            # Power Balance
-            for bus in net.buses:
-                if bus.is_slack():
-                    constraints.append(w[bus.index, i] == 0.)
-                dp = r[bus.index, i]
+            for bus in net.buses: # Power Balance
+                dp = 0.0
                 for gen in bus.generators:
                     dp += pg[gen.index, i] if gen.is_slack() else gen.P
                 for load in bus.loads:
                     dp -= load.P
+                    dp += r[bus.index, i] # Recorte de carga
                 for br in bus.branches_k:
-                    dp -= f[br.index, i]
-                for br in bus.branches_m: 
-                    dp += f[br.index, i]
-                constraints.extend([
-                    dp == 0.,
-                    r[bus.index, i] >= 0.
-                ])
+                    ckt = br.index
+                    dp -= f[ckt, i]
+                for br in bus.branches_m:
+                    ckt = br.index
+                    dp += f[ckt, i]
+                prob += dp == 0
 
-            # Dinamics in branches
             for br in net.branches:
                 ckt = br.index
                 k, m = br.bus_k.index, br.bus_m.index
 
-                rate = br.get_rating('A') # TODO: Estaria bueno que se puedan usar los limites A, B, C
+                rate = br.get_rating('A')
+                
+                # Ecuaciones de flujo
+                if br.is_in_service():
+                    prob += f[ckt, i] == -br.b*(w[k, i]-w[m, i])
+                    prob += f[ckt, i] <= rate + f_[ckt,i]
+                    prob += f[ckt, i] >= -rate - f_[ckt,i]
 
-                if not br.is_in_service(): # O sino con los indices
-                    M = 1e2 # big M
-                    constraints.extend([
-                        f[ckt, i] + br.b*(w[k, i] - w[m, i]) <= (1 - x[ckt])*M,
-                        f[ckt, i] + br.b*(w[k, i] - w[m, i]) >= -(1 - x[ckt])*M,
+                if not br.is_in_service():
+                    M = 1e2
+                    prob += f[ckt, i]+br.b*(w[k, i]-w[m, i])<= (1-x[ckt])*M
+                    prob += f[ckt, i]+br.b*(w[k, i]-w[m, i])>= -(1-x[ckt])*M
 
-                        f[ckt, i] <= x[ckt] * rate + phi_[ckt, i],
-                        f[ckt, i] >= -x[ckt] * rate - phi_[ckt, i],
+                    prob += f[ckt, i] <= x[ckt]*rate + phi_[ckt, i]
+                    prob += f[ckt, i] >= -x[ckt]*rate - phi_[ckt,t]
 
-                        phi_[ckt, i] - f_[ckt, i] <= (1 - x[ckt])*M,
-                        phi_[ckt, i] - f_[ckt, i] >= -(1 - x[ckt])*M,
+                    prob += phi_[ckt, i] - f_[ckt, i] <= (1-x[ckt])*M
+                    prob += phi_[ckt, i] - f_[ckt, i] >= -(1-x[ckt])*M
+                    
+                    prob += phi_[ckt, i] <= x[ckt]*M
+                    prob += phi_[ckt, i] >= -x[ckt]*M
+                
+            for bus in net.buses:
+                if bus.is_slack():
+                    prob += w[bus.index, i] == 0.
 
-                        phi_[ckt, i] <= x[ckt]*M,
-                        phi_[ckt, i] >= -x[ckt]*M
-                    ])
-
-                else:
-                    constraints.extend([
-                        f[ckt, i] == br.b*(w[k, i] - w[m, i]),
-                        f[ckt, i] <= rate + f_[ckt, i],
-                        f[ckt, i] >= -rate - f_[ckt, i]
-                    ])
-
-                constraints.extend([
-                    f_[ckt, i] >= 0.
-                ])
-
-            # Limits in slack gens
             for gen in net.generators:
                 if gen.is_slack():
-                    constraints.extend([
-                        pg[gen.index, i] <= gen.P_max,
-                        pg[gen.index, i] >= gen.P_min
-                    ])
+                    prob += pg[gen.index, i] <= gen.P_max
+                    prob += pg[gen.index, i] >= gen.P_min
 
-        p = Problem(minimize(phi), constraints)
-        p.solve(solver=OptSolverCbcCMD(), parameters={'quiet': False}) # ImportError: cbc cmd not available
-        # Ideas: Hacer un fork de optalg y hacer que el wrapper funcione en windows
-       
-        # Update networks
-        # TODO complete it
-        
-        return NotImplemented 
+        # Solve
+        prob.solve(
+            PULP_CBC_CMD(
+                mip=True,
+                cuts=True,
+                msg=0,
+                warmStart=False,
+                presolve=False
+                )
+            )
+
+        # Update Branches in Network
+        for k, build in x.items():
+            if build.varValue == True:
+                for net in scenarios.values():
+                    br = net.get_branch(k)
+                    br.in_service = True
+
+        # Delete branches OOS
+        for net in scenarios.values():
+            br_to_remove = []
+            for br in net.branches:
+                if not br.is_in_service():
+                    br_to_remove.append(br)
+            net.remove_branches(br_to_remove)
+
+        # Update Vars in Network
+        for i, net in scenarios.items():
+            for bus in net.buses:
+                bus.v_ang = w[bus.index, i].varValue
+
+            for gen in net.generators:
+                if gen.is_slack():
+                    gen.P = pg[gen.index, i].varValue
+
+        return list(scenarios.values())
 
     def copy_networks(self, nets):
         """
@@ -150,7 +170,11 @@ class TNEP():
         """
 
         for net in nets.values():
-            new_branches = []
+            start_idx = stop_idx = len(net.branches) + 1
+            stop_idx += len(parameters)
+            parameters['index'] = list(range(start_idx, stop_idx))
+
+            new_branches = []            
             for index, row in parameters.iterrows():
                 new_br = pfnet.Branch()
                 new_br.in_service = False
@@ -161,12 +185,16 @@ class TNEP():
                 den = row['x']**2 + row['r']**2
                 new_br.g = row['r'] / den
                 new_br.b = -row['x'] / den
-
                 new_br.b_k = new_br.b_m = row['b'] / 2
+
+                new_br.ratingA = row['Rating']/net.base_power
+
                 new_branches.append(new_br)
 
             net.add_branches(new_branches)
             net.update_properties()
+
+        return parameters
 
     def create_rating(self, nets):
         """
@@ -178,4 +206,4 @@ class TNEP():
             for br in net.branches:
                 if br.get_rating('A') <= 0.:
                     delta_max = np.deg2rad(30)
-                    br.ratingA = np.sin(delta_max) * br.b
+                    br.ratingA = abs(np.sin(delta_max) * br.b)

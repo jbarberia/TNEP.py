@@ -1,7 +1,7 @@
 git+git://github.com/jbarberia/PFNET.py/@dev
-optmod
-optalg
+pulp
 numpy==1.19.3
+scipy
 cython>=0.20.1
 pandas
 openpyxl

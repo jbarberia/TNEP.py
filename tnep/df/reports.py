@@ -94,10 +94,9 @@ class Reports():
                     "Bus k" : br.bus_k.number,
                     "Bus m" : br.bus_m.number,
                     "Carga %" : carga,
-                    "Rating" : br.get_rating('A'),
+                    "Rating" : br.get_rating('A') * net.base_power,
                     "P loss" : (br.get_P_km() + br.get_P_mk()) * net.base_power,
                     "Q loss" : (br.get_Q_km() + br.get_Q_mk()) * net.base_power,
                 }, ignore_index=True)
                 
-
         return df

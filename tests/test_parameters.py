@@ -9,7 +9,7 @@ def test_generate_templates():
     parameters.generate_template('tmp.xlsx')
     parameters.read_excel('tmp.xlsx')
 
-    default_col = set(['Bus k', 'Bus m', 'r', 'x', 'b', 'Rating', 'Cost'])
+    default_col = set(['Bus k', 'Bus m', 'r', 'x', 'b', 'Rating', 'Costo'])
 
     assert default_col <= set(parameters.data.columns)
 
