@@ -25,7 +25,8 @@ def test_basic():
 
 def test_tnep_solution():
     """
-    To verify the solution
+    Para verificar la solucion,
+    La sobrecarga maxima que sea menor al 105%
     """
     # Get cases
     parser = Parser()
@@ -44,16 +45,6 @@ def test_tnep_solution():
         NR().solve_dc(net)
 
     dfs = list(map(Reports().branches, nets))
-    
-    for df in dfs:
-        print(df)
-
     max_per_case = [max(df['Carga %']) for df in dfs]
 
-    parser.write('foo.raw', nets[0])#    zip(nets, ['foo1', 'foo2']))
-
     assert max(max_per_case) <= 105.0
-
-
-
-

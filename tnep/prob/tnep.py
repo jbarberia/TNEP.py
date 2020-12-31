@@ -99,7 +99,7 @@ class TNEP():
                     prob += f[ckt, i]+br.b*(w[k, i]-w[m, i])>= -(1-x[ckt])*M
 
                     prob += f[ckt, i] <= x[ckt]*rate + phi_[ckt, i]
-                    prob += f[ckt, i] >= -x[ckt]*rate - phi_[ckt,t]
+                    prob += f[ckt, i] >= -x[ckt]*rate - phi_[ckt, i]
 
                     prob += phi_[ckt, i] - f_[ckt, i] <= (1-x[ckt])*M
                     prob += phi_[ckt, i] - f_[ckt, i] >= -(1-x[ckt])*M
@@ -122,7 +122,7 @@ class TNEP():
                 mip=True,
                 cuts=True,
                 msg=0,
-                warmStart=False,
+                warmStart=True,
                 presolve=False
                 )
             )
@@ -168,27 +168,22 @@ class TNEP():
         nets: Diccionario con PFNET Networks
         parameters: DataFrame con los datos de las lineas
         """
-
         for net in nets.values():
-            start_idx = stop_idx = len(net.branches) + 1
+            start_idx = stop_idx = len(net.branches)
             stop_idx += len(parameters)
             parameters['index'] = list(range(start_idx, stop_idx))
 
             new_branches = []            
             for index, row in parameters.iterrows():
                 new_br = pfnet.Branch()
-                new_br.in_service = False
-
                 new_br.bus_k = net.get_bus_from_number(row['Bus k'])
                 new_br.bus_m = net.get_bus_from_number(row['Bus m'])
-
                 den = row['x']**2 + row['r']**2
                 new_br.g = row['r'] / den
                 new_br.b = -row['x'] / den
                 new_br.b_k = new_br.b_m = row['b'] / 2
-
                 new_br.ratingA = row['Rating']/net.base_power
-
+                new_br.in_service = False
                 new_branches.append(new_br)
 
             net.add_branches(new_branches)
