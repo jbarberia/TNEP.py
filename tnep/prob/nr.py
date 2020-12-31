@@ -1,6 +1,7 @@
 import optalg
 import pfnet
-from optmod import Problem, EmptyObjective
+import numpy as np
+import scipy.sparse as ss
 
 class NR():
     """
@@ -73,15 +74,24 @@ class NR():
         p = pfnet.Problem(net)
         p.add_constraint(pfnet.Constraint('DC power balance', net))  
         p.add_constraint(pfnet.Constraint('generator active power participation', net))
-        
+        p.analyze()
+
         self.solve(p, net)
     
-    def solve(self, problem, net):
-        problem.analyze()
+    def solve(self, problem, net, tol=1e-4, itr_max=25):
+        
+        x = problem.get_init_point()
+        problem.eval(x)
 
-        solver = optalg.opt_solver.OptSolverNR()
-        solver.set_parameters({'tol': 1e-4})
-        solver.solve(problem)
+        residual = lambda x: np.hstack((problem.A*x-problem.b, problem.f))
+        k = 0
+        while np.linalg.norm(residual(x)) > tol or k == itr_max:
+            problem.apply_heuristics(x)
+            A = ss.bmat([[problem.A],[problem.J]],format='csr')
+            B = -residual(x)
+            x = x + ss.linalg.spsolve(A, B)
+            problem.eval(x)
+            k += 1
 
-        net.set_var_values(solver.get_primal_variables())
+        net.set_var_values(x)
         net.update_properties()
