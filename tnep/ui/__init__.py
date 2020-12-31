@@ -1,0 +1,1 @@
+from .TNEP_UI import Ui_MainWindow

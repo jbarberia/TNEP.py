@@ -38,5 +38,3 @@ class Parser():
         name, ext = os.path.splitext(filename)
         parser = self.select_parser(ext)
         parser.write(net, filename)
-
-

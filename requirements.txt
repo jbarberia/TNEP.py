@@ -6,3 +6,4 @@ cython>=0.20.1
 pandas
 openpyxl
 pytest
+pyqt5
