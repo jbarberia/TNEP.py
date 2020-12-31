@@ -1,7 +1,7 @@
 import os
 import pfnet
 import pandas as pd
-
+from openpyxl import load_workbook
 
 class Reports():
     """
@@ -27,8 +27,11 @@ class Reports():
         Escribe un excel con los reportes
         """
         filename = self.check_name(filename, ['.xlsx', '.xls'])
+        xl = load_workbook(filename)
 
-        writer = pd.ExcelWriter(filename)
+        writer = pd.ExcelWriter(filename, engine='openpyxl') 
+        writer.book = xl
+
         df.to_excel(writer, sheet)
         writer.save()
 

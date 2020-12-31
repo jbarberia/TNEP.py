@@ -20,6 +20,10 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         # Botones Output
         self.generarResultados.clicked.connect(self.writeCases)
 
+        # Botones Generar archivos
+        self.seleccionarOutput.clicked.connect(self.addExcelReport)
+        self.exportarOutput.clicked.connect(self.exportarLastReport) # Sumar funcion
+
         # Ribbon - File
         self.actionSalir.triggered.connect(self.exit)
 
@@ -33,8 +37,9 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         self.actionGeneradores.triggered.connect(lambda: self.reports("generators"))
         self.actionLineas.triggered.connect(lambda: self.reports("branches"))
 
-        # Scenarios
+        # Scenarios y memoria para DF
         self.scenarios = {}
+        self.lastReport = []
 
         # Power System Optimization Back End
         self.parser = Parser()
@@ -78,14 +83,16 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         fileName, _ = QFileDialog.getOpenFileName(self,"Seleccione Escenario", "","PSSE 33 RAW(*.raw);; MATPOWER (*.m)")
         fileName = '/'.join(fileName.split('\\'))
 
-        if self.scenarios.get(fileName) == None:
-            self.scenarios[fileName] = self.parser.parse(fileName)
-            self.printOutputBar("Caso Añadido: " + fileName)
-            self.listCasos.addItem(fileName)
-            self.enableButtons()
-        else:
-            self.printOutputBar("Caso existente: Se omite la entrada")
-        
+        try:
+            if self.scenarios.get(fileName) == None:
+                self.scenarios[fileName] = self.parser.parse(fileName)
+                self.printOutputBar("Caso Añadido: " + fileName)
+                self.listCasos.addItem(fileName)
+                self.enableButtons()
+            else:
+                self.printOutputBar("Caso existente: Se omite la entrada")
+        except:
+            pass
 
     def removeRAW(self):
         selectedCases = self.listCasos.selectedItems()
@@ -110,6 +117,29 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
             self.printOutputBar("Parametros Invalidos: " + fileName)
             self.printOutputBar("Por favor genere la plantilla desde el botón")
 
+    def addExcelReport(self):
+        fileName, _ = QFileDialog.getOpenFileName(self,"Seleccione Lineas Candidatos", "","Excel (*.xlsx);")
+        fileName = '/'.join(fileName.split('\\'))
+
+        if fileName != "":
+            self.excelOutput.setText(fileName)
+            self.pathOutput = fileName
+            self.printOutputBar("Los reportes generados se escribiran en: " + fileName)
+            self.printOutputBar("Recuerde que se escribira el ultimo reporte generado en la Output Bar")
+
+            self.exportarOutput.setEnabled(True)
+
+
+    def exportarLastReport(self):
+        if len(self.lastReport) > 0:
+            for df, scenario in zip(self.lastReport, self.scenarios.keys()):
+                fileName = self.pathOutput
+                sheet = self.outputHoja.text() + '' + scenario.split('/')[-1]
+                self.report.to_excel(df, fileName, sheet)
+                self.printOutputBar("Reporte escrito en la hoja: {}".format(sheet))
+        else:
+            self.printOutputBar("Todavia no se corrio ningun reporte")
+        
 
     def printOutputBar(self, log):
         self.textOutputBar.append(log)
@@ -141,6 +171,7 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def reports(self, component):
+        self.lastReport = []
         for net in self.scenarios.values():
             if component == "buses":
                 df = self.report.buses(net)
@@ -148,7 +179,8 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
                 df = self.report.generators(net)
             if component == "branches":
                 df = self.report.branches(net)
-
+            
+            self.lastReport.append(df)
             self.printOutputBar(df.to_string())
 
 
