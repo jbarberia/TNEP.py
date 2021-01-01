@@ -14,6 +14,7 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         self.quitarCaso.clicked.connect(self.removeRAW)
 
         self.agregarCandidatos.clicked.connect(self.addExcel)
+        self.Plantilla.clicked.connect(self.createTemplate)
 
         # Botones Optimizar
         self.Optimizar.clicked.connect(self.runTNEP)
@@ -24,17 +25,17 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Botones Generar archivos
         self.seleccionarOutput.clicked.connect(self.addExcelReport)
-        self.exportarOutput.clicked.connect(self.exportarLastReport) # Sumar funcion
+        self.exportarOutput.clicked.connect(self.exportarLastReport)
 
         # Ribbon - File
         self.actionSalir.triggered.connect(self.exit)
 
-        # Ribbon - Flujos TODO: Deberian habilitarse si hay algun caso cargado
+        # Ribbon - Flujos
         self.actionResolver_NR.triggered.connect(self.runPFNR)
         self.actionResolver_DC.triggered.connect(self.runPFDC)
         self.actionForzar_FS.triggered.connect(self.runPFFS)
 
-        # Ribbon - Reportes TODO: Deberian habilitarse solo si hay algun caso cargado
+        # Ribbon - Reportes
         self.actionBarras.triggered.connect(lambda: self.reports("buses"))
         self.actionGeneradores.triggered.connect(lambda: self.reports("generators"))
         self.actionLineas.triggered.connect(lambda: self.reports("branches"))
@@ -117,6 +118,15 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         except (AssertionError, KeyError):
             self.printOutputBar("Parametros Invalidos: " + fileName)
             self.printOutputBar("Por favor genere la plantilla desde el botón")
+
+
+    def createTemplate(self):
+        # TODO
+        folder = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
+        filename = folder + '\\plantilla.xlsx'
+        self.params.generate_template(filename)
+        self.printOutputBar("Plantilla generada en: {}".format(filename))
+    
 
     def addExcelReport(self):
         fileName, _ = QFileDialog.getOpenFileName(self,"Seleccione Lineas Candidatos", "","Excel (*.xlsx);")
@@ -259,7 +269,6 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         if close == QtWidgets.QMessageBox.Yes:
             self.close()
 
-    # TODO:
 
 if __name__ == "__main__":
     import sys
