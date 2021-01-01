@@ -1,4 +1,3 @@
-import optalg
 import pfnet
 import numpy as np
 import scipy.sparse as ss

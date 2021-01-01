@@ -1,4 +1,4 @@
-git+git://github.com/jbarberia/PFNET.py/@dev
+git+git://github.com/ttinoco/PFNET.py/@dev
 pulp
 numpy==1.19.3
 scipy
@@ -7,3 +7,4 @@ pandas
 openpyxl
 pytest
 pyqt5
+pyinstaller
