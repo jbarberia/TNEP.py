@@ -1,6 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
+import sys
+import os
 
 block_cipher = None
+
+def get_pulp_path():
+    import pulp
+    return pulp.__path__[0]
+
+path_main = os.path.dirname(os.path.abspath(sys.argv[2]))
 
 
 a = Analysis(['tnep\\main.py'],
@@ -15,12 +23,16 @@ a = Analysis(['tnep\\main.py'],
              win_private_assemblies=False,
              cipher=block_cipher,
              noarchive=False)
+
+a.datas += Tree(get_pulp_path(), prefix='pulp', excludes=["*.pyc"])
+
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
+
 exe = EXE(pyz,
           a.scripts,
           [],
-          exclude_binaries=True,
+          exclude_binaries=False,
           name='main',
           debug=False,
           bootloader_ignore_signals=False,

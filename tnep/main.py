@@ -78,7 +78,9 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
             self.actionBarras.setEnabled(True)
             self.actionGeneradores.setEnabled(True)
             self.actionLineas.setEnabled(True)
-        
+
+            if self.params.data is not None:
+                self.Optimizar.setEnabled(True)
 
     def addRAW(self):
         fileName, _ = QFileDialog.getOpenFileName(self,"Seleccione Escenario", "","PSSE 33 RAW(*.raw);; MATPOWER (*.m)")
