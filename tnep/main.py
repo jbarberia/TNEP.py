@@ -254,8 +254,8 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         
 
     def writeCases(self):
-        name, ext = os.path.splitext(filename)
-        for filename, net in sel.solved_nets.items():
+        for filename, net in self.solved_nets.items():
+            name, ext = os.path.splitext(filename)
             if self.radioButtonRAW.isChecked():
                 filename = name + '.raw'
             if self.radioButtonMATPOWER.isChecked():
