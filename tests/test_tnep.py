@@ -48,3 +48,20 @@ def test_tnep_solution():
     max_per_case = [max(df['Carga %']) for df in dfs]
 
     assert max(max_per_case) <= 105.0
+
+def test_radial():
+    parser = Parser()
+    cases = [data_path + i for i in ['radial.raw', 'radial2.raw']]
+    nets = list(map(parser.parse, cases))
+    for net in nets:
+        NR().solve_ac(net)
+    
+    # Get parameters
+    df_param = Parameters().read_excel(data_path + 'radial.xlsx')
+
+    model = TNEP()
+    nets = model.solve(nets, df_param)
+
+    net = nets[1]
+
+    assert len(net.branches) == 3
