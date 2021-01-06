@@ -12,7 +12,7 @@ class TNEP():
     def __init__(self):
         pass
 
-    def solve(self, nets, parameters: pd.DataFrame, rate_factor, penalty, ens):
+    def solve(self, nets, parameters: pd.DataFrame, rate_factor=1., penalty=1e3, ens=1e3):
         """
         Resuelve el TNEP, devuelve un listado de PFNET Networks
         con la solucion
