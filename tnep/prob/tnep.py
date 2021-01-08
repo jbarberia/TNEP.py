@@ -28,11 +28,15 @@ class TNEP():
         load_bus_indices = []
         gen_indices = []
         br_indices = []
+        # br_indices_to_build = []
         for i, net in scenarios.items():
             bus_indices.extend([(bus.index, i) for bus in net.buses])
             load_bus_indices.extend([(bus.index, i) for bus in net.buses if len(bus.loads) > 0])
             gen_indices.extend([(gen.index, i) for gen in net.generators if gen.is_slack])
             br_indices.extend([(br.index, i) for br in net.branches])
+            # br_indices.extend([(br.bus_k.index, br.bus_m.index, br.name, i) for br in net.branches])
+            # br_indices_to_build.extend([(br.bus_k.index, br.bus_m.index, br.name, i) for br in net.branches if br.to_build])
+
         br_indices_oos = list(candidates['index'])
 
         # Instaciate problem
@@ -48,6 +52,8 @@ class TNEP():
                                   for (i, net) in scenarios.items()
                                   for br in net.branches
                                   if not br.is_in_service()}
+        # phi_ = {(idx, i): LpVariable(f'phi_{br.index}_{i}', lowBound=0.) for (idx, i) in br_indices_to_build}
+
         r = {(idx, i): LpVariable(f'r_{idx}_{i}', lowBound=0.) for (idx, i) in load_bus_indices}
         x = {i: LpVariable(
                 f'x_{i}',
@@ -55,6 +61,7 @@ class TNEP():
                 lowBound=0,
                 upBound=1) 
                 for i in br_indices_oos}
+               # for i in br_indices_to_build}
         
         # Objective
         prob += (sum(c * x[idx] for idx, c in zip(candidates['index'], candidates['Costo'])) 
@@ -81,6 +88,9 @@ class TNEP():
             for br in net.branches:
                 ckt = br.index
                 k, m = br.bus_k.index, br.bus_m.index
+
+                # id = br.name
+                # ckt = (k, m, id)
 
                 rate = br.get_rating('A') * rate_factor
                 
@@ -165,6 +175,8 @@ class TNEP():
         nets: Diccionario con PFNET Networks
         parameters: DataFrame con los datos de las lineas
         """
+        # TODO: add to_build attribute 
+
         for net in nets.values():
             start_idx = stop_idx = len(net.branches)
             stop_idx += len(parameters)
