@@ -4,7 +4,7 @@ from tnep import Parser, TNEP, Parameters
 
 data_path = os.path.dirname(os.path.realpath(__file__)) + '\\data\\'
 
-def test_basic():
+def foo_test_basic():
     """
     To debug the problem
     """
@@ -23,7 +23,7 @@ def test_basic():
         assert len(net.branches) == 3
 
 
-def test_tnep_solution():
+def foo_test_tnep_solution():
     """
     Para verificar la solucion,
     La sobrecarga maxima que sea menor al 105%
@@ -49,7 +49,7 @@ def test_tnep_solution():
 
     assert max(max_per_case) <= 105.0
 
-def test_radial():
+def foo_test_radial():
     parser = Parser()
     cases = [data_path + i for i in ['radial.raw', 'radial2.raw']]
     nets = list(map(parser.parse, cases))
@@ -65,3 +65,16 @@ def test_radial():
     net = nets[1]
 
     assert len(net.branches) == 3
+
+def test_96():
+    parser = Parser()
+    cases = [data_path + f"RTS-96-{i}.raw" for i in range(1, 6)]
+    nets = list(map(parser.parse, cases))
+    for net in nets:
+        NR().solve_ac(net)
+    
+    # Get parameters
+    df_param = Parameters().read_excel(data_path + 'RTS-96.xlsx')
+
+    model = TNEP()
+    nets = model.solve(nets, df_param)
