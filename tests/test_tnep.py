@@ -4,7 +4,7 @@ from tnep import Parser, TNEP, Parameters
 
 data_path = os.path.dirname(os.path.realpath(__file__)) + '\\data\\'
 
-def test_basic():
+def foo_test_basic():
     """
     To debug the problem
     """
@@ -48,3 +48,33 @@ def test_tnep_solution():
     max_per_case = [max(df['Carga %']) for df in dfs]
 
     assert max(max_per_case) <= 105.0
+
+def test_radial():
+    parser = Parser()
+    cases = [data_path + i for i in ['radial.raw', 'radial2.raw']]
+    nets = list(map(parser.parse, cases))
+    for net in nets:
+        NR().solve_ac(net)
+    
+    # Get parameters
+    df_param = Parameters().read_excel(data_path + 'radial.xlsx')
+
+    model = TNEP()
+    nets = model.solve(nets, df_param)
+
+    net = nets[1]
+
+    assert len(net.branches) >= 2
+
+def test_96():
+    parser = Parser()
+    cases = [data_path + f"RTS-96-{i}.raw" for i in range(1, 6)]
+    nets = list(map(parser.parse, cases))
+    for net in nets:
+        NR().solve_ac(net)
+    
+    # Get parameters
+    df_param = Parameters().read_excel(data_path + 'RTS-96.xlsx')
+
+    model = TNEP()
+    nets = model.solve(nets, df_param)
