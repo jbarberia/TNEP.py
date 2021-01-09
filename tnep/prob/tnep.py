@@ -148,7 +148,7 @@ class TNEP():
                 if gen.is_slack():
                     gen.P = pg[gen.index, i].varValue
 
-        return list(scenarios.values()), 
+        return list(scenarios.values())
 
     def copy_networks(self, nets):
         """
