@@ -1,5 +1,6 @@
 import os
 import pfnet
+import numpy as np
 import pandas as pd
 from openpyxl import load_workbook
 
@@ -55,7 +56,7 @@ class Reports():
                     "Number" : bus.number,
                     "Name" : bus.name,
                     "V" : bus.v_mag,
-                    "°" : bus.v_ang,
+                    "°" : np.rad2deg(bus.v_ang),
                     "V Max" : bus.get_v_max(),
                     "V Min" : bus.get_v_min()
                 }, ignore_index=True)
