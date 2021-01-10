@@ -4,7 +4,7 @@ from tnep import Parser, TNEP, Parameters
 
 data_path = os.path.dirname(os.path.realpath(__file__)) + '\\data\\'
 
-def foo_test_basic():
+def test_basic():
     """
     To debug the problem
     """
@@ -71,7 +71,7 @@ def test_96():
     cases = [data_path + f"RTS-96-{i}.raw" for i in range(1, 6)]
     nets = list(map(parser.parse, cases))
     for net in nets:
-        NR().solve_ac(net)
+        NR().solve_dc(net)
     
     # Get parameters
     df_param = Parameters().read_excel(data_path + 'RTS-96.xlsx')

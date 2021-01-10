@@ -12,15 +12,15 @@ class TNEP():
     def __init__(self):
         pass
 
-    def solve(self, nets, parameters: pd.DataFrame, rate_factor=1., penalty=1e3, ens=1e3):
+    def solve(self, nets, parameters: pd.DataFrame, rate_factor=1., penalty=1e6, ens=1e6):
         """
         Resuelve el TNEP, devuelve un listado de PFNET Networks
         con la solucion
         """
 
         # Pre-Proceso del caso
-        scenarios, to_build_table = self.copy_networks(nets) # TODO retornar hash table con ckt existentes
-        candidates, to_build_table = self.create_branches(scenarios, parameters, to_build_table) # TODO modificar hashtable
+        scenarios, to_build_table = self.copy_networks(nets)
+        candidates, to_build_table = self.create_branches(scenarios, parameters, to_build_table)
         self.create_rating(scenarios)
 
         # Indices
@@ -32,9 +32,7 @@ class TNEP():
         for i, net in scenarios.items():
             bus_indices.extend([(bus.number, i) for bus in net.buses])
             load_bus_indices.extend([(bus.number, i) for bus in net.buses if len(bus.loads) > 0])
-            gen_indices.extend([(gen.index, i) for gen in net.generators if gen.is_slack])
-
-        br_indices_oos = list(candidates['index'])
+            gen_indices.extend([(bus.number, i) for bus in net.buses if bus.is_slack])
 
         # Instaciate problem
         prob = LpProblem("TLEP", LpMinimize)
@@ -47,27 +45,31 @@ class TNEP():
         phi_ = {(idx): LpVariable(f'phi_{idx}', lowBound=0.) for idx in br_indices_to_build}
 
         r = {(idx, i): LpVariable(f'r_{idx}_{i}', lowBound=0.) for (idx, i) in load_bus_indices}
-        x = {(k, m, name): LpVariable(
-                f'x_{k, m, name}',
-                cat='Integer',
-                lowBound=0,
-                upBound=1) 
-                for (k, m, name, i) in br_indices_to_build}
-        
+        x = {}
+        for (k, m, name, i) in br_indices_to_build:
+            if not (k, m, name) in x:
+                x[k, m, name] = LpVariable(
+                    f'x_{k, m, name}',
+                    cat='Integer',
+                    lowBound=0,
+                    upBound=1)
+
         # Objective
         prob += (sum(c * x[idx] for idx, c in zip(candidates['index'], candidates['Costo'])) 
-                 + penalty * sum(vio for vio in f_.values())
-                 + ens * sum(l_shed for l_shed in r.values()))
+                 + penalty * sum(vio for vio in f_.values()))
+                 #+ ens * sum(l_shed for l_shed in r.values()))
 
         # Constraints
         for i, net in scenarios.items():
             for bus in net.buses: # Power Balance
                 dp = 0.0
-                for gen in bus.generators:
-                    dp += pg[gen.index, i] if gen.is_slack() else gen.P
+                if bus.is_slack():
+                    dp += pg[bus.number, i]
+                else:
+                    for gen in bus.generators:
+                        dp += gen.P
                 for load in bus.loads:
-                    dp -= load.P
-                    dp += r[bus.number, i] # Recorte de carga
+                    dp -= load.P #- r[bus.number, i] # Recorte de carga
                 for br in bus.branches_k:
                     ckt = (br.bus_k.number, br.bus_m.number, br.name, i)
                     dp -= f[ckt]
@@ -83,13 +85,13 @@ class TNEP():
                 rate = br.get_rating('A') * rate_factor
                 
                 # Ecuaciones de flujo
-                if br.is_in_service():
+                if ckt not in br_indices_to_build:
                     prob += f[ckt] == -br.b*(w[k, i]-w[m, i])
                     prob += f[ckt] <= rate + f_[ckt]
                     prob += f[ckt] >= -rate - f_[ckt]
 
-                if not br.is_in_service():
-                    M = 1e2
+                else:
+                    M = 1e1
                     prob += f[ckt]+br.b*(w[k, i]-w[m, i])<= (1-x[k, m, name])*M
                     prob += f[ckt]+br.b*(w[k, i]-w[m, i])>= -(1-x[k, m, name])*M
 
@@ -105,20 +107,22 @@ class TNEP():
             for bus in net.buses:
                 if bus.is_slack():
                     prob += w[bus.number, i] == 0.
+                    # prob += pg[bus.number, i] <= sum(gen.P_max for gen in bus.generators)
+                    # prob += pg[bus.number, i] >= -sum(gen.P_max for gen in bus.generators)
 
-            for gen in net.generators:
-                if gen.is_slack():
-                    prob += pg[gen.index, i] <= gen.P_max
-                    prob += pg[gen.index, i] >= gen.P_min
+            # for gen in net.generators:
+            #    if gen.is_slack():
+            #        prob += pg[gen.index, i] <= gen.P_max * 2
+            #        prob += pg[gen.index, i] >= gen.P_min / 2
+            #        prob += pg[gen.index, i] >= - gen.P_max * 2
 
-        # Solve
         prob.solve(
             PULP_CBC_CMD(
                 mip=True,
                 cuts=True,
                 msg=0,
                 warmStart=True,
-                presolve=False
+                presolve=True
                 )
             )
 
@@ -144,9 +148,9 @@ class TNEP():
             for bus in net.buses:
                 bus.v_ang = w[bus.number, i].varValue
 
-            for gen in net.generators:
-                if gen.is_slack():
-                    gen.P = pg[gen.index, i].varValue
+            #for gen in net.generators:
+            #    if gen.is_slack():
+            #        gen.P = pg[gen.index, i].varValue
 
         return list(scenarios.values())
 
