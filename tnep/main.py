@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QFileDialog
 from tnep import NR, TNEP, Parser, Parameters, Reports
@@ -233,13 +234,18 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         
         dfs = []
         for pre_df, pos_df in zip(pre_dfs, pos_dfs):
-
+            # Rename
             pre_df = pre_df.rename(columns={'Carga %': 'Pre. Opt. Carga %'})
             pos_df = pos_df.rename(columns={'Carga %': 'Pos. Opt. Carga %'})
 
-            df = pos_df.loc[:, ['Bus k', 'Bus m', 'Pos. Opt. Carga %']]
-            df['Pre. Opt. Carga %'] = pre_df.loc[:, ['Pre. Opt. Carga %']]
+            # Slice df
+            pre_df = pre_df.loc[:, ['Bus k', 'Bus m', 'id', 'Pre. Opt. Carga %']]
+            pos_df = pos_df.loc[:, ['Bus k', 'Bus m', 'id', 'Pos. Opt. Carga %']]
 
+            # Join
+            df = pd.merge(pre_df, pos_df, how='right', on=["Bus k", "Bus m", "id"])
+
+            # Add to list
             dfs.append(df)
 
         self.tnepReport = dfs
