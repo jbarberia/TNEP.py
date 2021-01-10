@@ -1,4 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
+# In terminal run: pyinstaller -y tnep.spec
 import sys
 import os
 

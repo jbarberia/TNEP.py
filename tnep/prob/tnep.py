@@ -185,7 +185,7 @@ class TNEP():
                 new_br = pfnet.Branch()
                 new_br.bus_k = net.get_bus_from_number(row['Bus k'])
                 new_br.bus_m = net.get_bus_from_number(row['Bus m'])
-                new_br.name = 'NL'
+                new_br.name = row['id']
                 den = row['x']**2 + row['r']**2
                 new_br.g = row['r'] / den
                 new_br.b = -row['x'] / den
@@ -198,7 +198,7 @@ class TNEP():
             net.update_properties()
 
             for br in net.branches:
-                if to_build_table.get((br.bus_k.number, br.bus_m.number, br.name, i), True):
+                if not (br.bus_k.number, br.bus_m.number, br.name, i) in to_build_table:
                     to_build_table[br.bus_k.number, br.bus_m.number, br.name, i] = True
 
         return parameters, to_build_table
