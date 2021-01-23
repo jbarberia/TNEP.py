@@ -210,15 +210,18 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
             df = self.report.branches(net)
             pre_dfs.append(df)
 
-        solved_nets = self.TNEP.solve(
+        solved_nets, resultado = self.TNEP.solve(
             self.scenarios.values(),
-            self.params.data,
+            self.params,
             rate_percentage,
             flow_penalty,
             ens
         )
 
-        self.printOutputBar('Optimizacion Exitosa')
+        self.printOutputBar('Optimizacion con resultado: {}'.format(resultado['status']))
+        self.printOutputBar('Se construyeron: {} Lineas'.format(resultado['br_cost']))
+        self.printOutputBar('Costo de lineas: {}'.format(resultado['br_builded']))
+        self.printOutputBar('Funcion Objetivo: {}'.format(resultado['objetive']))
         
         # Escribir las redes en objeto
         for fileName, net in zip(self.scenarios.keys(), solved_nets):
