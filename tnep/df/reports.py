@@ -1,5 +1,6 @@
 import os
 import pfnet
+import numpy as np
 import pandas as pd
 from openpyxl import load_workbook
 
@@ -55,7 +56,7 @@ class Reports():
                     "Number" : bus.number,
                     "Name" : bus.name,
                     "V" : bus.v_mag,
-                    "°" : bus.v_ang,
+                    "°" : np.rad2deg(bus.v_ang),
                     "V Max" : bus.get_v_max(),
                     "V Min" : bus.get_v_min()
                 }, ignore_index=True)
@@ -66,17 +67,17 @@ class Reports():
         """
         Reporte de todas los generadores de una red
         """
-        df = pd.DataFrame(columns=['Bus', 'ID', 'P', 'P max', 'P min', 'Q max', 'Q min'])
+        df = pd.DataFrame(columns=['Bus', 'ID', 'P', 'P max', 'P min', 'Q', 'Q max', 'Q min'])
         for gen in reversed(net.generators):
             df = df.append({
                     "Bus" : gen.bus.number,
                     "ID" : gen.name,
                     "P" : gen.P * net.base_power,
-                    "P min" : gen.P_min * net.base_power,
                     "P max" : gen.P_max * net.base_power,
+                    "P min" : gen.P_min * net.base_power,
                     "Q" : gen.Q * net.base_power,
-                    "Q min" : gen.Q_min * net.base_power,
                     "Q max" : gen.Q_max * net.base_power,
+                    "Q min" : gen.Q_min * net.base_power,
                 }, ignore_index=True)
 
         return df
@@ -85,7 +86,7 @@ class Reports():
         """
         Reporte de todas las lineas de una red
         """
-        df = pd.DataFrame(columns=['Bus k', 'Bus m', 'Carga %', 'Rating', 'P loss', 'Q loss'])
+        df = pd.DataFrame(columns=['Bus k', 'Bus m', 'id', 'Carga %', 'Rating', 'P loss', 'Q loss'])
         for br in reversed(net.branches):
 
             if br.get_rating('A') > 0:
@@ -96,6 +97,7 @@ class Reports():
             df = df.append({
                     "Bus k" : br.bus_k.number,
                     "Bus m" : br.bus_m.number,
+                    "id" : br.name,
                     "Carga %" : carga,
                     "Rating" : br.get_rating('A') * net.base_power,
                     "P loss" : (br.get_P_km() + br.get_P_mk()) * net.base_power,

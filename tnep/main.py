@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QFileDialog
 from tnep import NR, TNEP, Parser, Parameters, Reports
@@ -209,15 +210,18 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
             df = self.report.branches(net)
             pre_dfs.append(df)
 
-        solved_nets = self.TNEP.solve(
+        solved_nets, resultado = self.TNEP.solve(
             self.scenarios.values(),
-            self.params.data,
+            self.params,
             rate_percentage,
             flow_penalty,
             ens
         )
 
-        self.printOutputBar('Optimizacion Exitosa')
+        self.printOutputBar('Optimizacion con resultado: {}'.format(resultado['status']))
+        self.printOutputBar('Se construyeron: {} Lineas'.format(resultado['br_cost']))
+        self.printOutputBar('Costo de lineas: {}'.format(resultado['br_builded']))
+        self.printOutputBar('Funcion Objetivo: {}'.format(resultado['objetive']))
         
         # Escribir las redes en objeto
         for fileName, net in zip(self.scenarios.keys(), solved_nets):
@@ -233,13 +237,18 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         
         dfs = []
         for pre_df, pos_df in zip(pre_dfs, pos_dfs):
-
+            # Rename
             pre_df = pre_df.rename(columns={'Carga %': 'Pre. Opt. Carga %'})
             pos_df = pos_df.rename(columns={'Carga %': 'Pos. Opt. Carga %'})
 
-            df = pos_df.loc[:, ['Bus k', 'Bus m', 'Pos. Opt. Carga %']]
-            df['Pre. Opt. Carga %'] = pre_df.loc[:, ['Pre. Opt. Carga %']]
+            # Slice df
+            pre_df = pre_df.loc[:, ['Bus k', 'Bus m', 'id', 'Pre. Opt. Carga %']]
+            pos_df = pos_df.loc[:, ['Bus k', 'Bus m', 'id', 'Pos. Opt. Carga %']]
 
+            # Join
+            df = pd.merge(pre_df, pos_df, how='right', on=["Bus k", "Bus m", "id"])
+
+            # Add to list
             dfs.append(df)
 
         self.tnepReport = dfs
