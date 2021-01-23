@@ -14,10 +14,11 @@ def test_basic():
     nets = list(map(parser.parse, cases))
     
     # Get parameters
-    df_param = Parameters().read_excel(data_path + 'test_3.xlsx')
+    parameters = Parameters()
+    parameters.read_excel(data_path + 'test_3.xlsx')
 
     model = TNEP()
-    nets_solved = model.solve(nets, df_param)
+    nets_solved, resultado = model.solve(nets, parameters)
 
     for net in nets_solved:
         assert len(net.branches) == 3
@@ -36,45 +37,39 @@ def test_tnep_solution():
         NR().solve_ac(net)
     
     # Get parameters
-    df_param = Parameters().read_excel(data_path + 'test_3.xlsx')
+    parameters = Parameters()
+    parameters.read_excel(data_path + 'test_3.xlsx')
 
     model = TNEP()
-    nets = model.solve(nets, df_param)
+    nets_solved, resultado = model.solve(nets, parameters)
+
+    for net in nets_solved:
+        NR().solve_dc(net)
+
+    dfs = list(map(Reports().branches, nets_solved))
+    max_per_case = [max(df['Carga %']) for df in dfs]
+
+    assert max(max_per_case) <= 105.0
+
+
+def test_96():
+    parser = Parser()
+    cases = [data_path + f"RTS-96-{i}.raw" for i in range(1, 6)]
+    nets = list(map(parser.parse, cases))
+
+    [br for net in nets for br in net.branches if br.in_service == False]
 
     for net in nets:
         NR().solve_dc(net)
 
     dfs = list(map(Reports().branches, nets))
     max_per_case = [max(df['Carga %']) for df in dfs]
-
-    assert max(max_per_case) <= 105.0
-
-def test_radial():
-    parser = Parser()
-    cases = [data_path + i for i in ['radial.raw', 'radial2.raw']]
-    nets = list(map(parser.parse, cases))
-    for net in nets:
-        NR().solve_ac(net)
     
     # Get parameters
-    df_param = Parameters().read_excel(data_path + 'radial.xlsx')
+    parameters = Parameters()
+    parameters.read_excel(data_path + 'RTS-96.xlsx')
 
     model = TNEP()
-    nets = model.solve(nets, df_param)
+    nets_solved, resultado = model.solve(nets, parameters)
 
-    net = nets[1]
-
-    assert len(net.branches) >= 2
-
-def test_96():
-    parser = Parser()
-    cases = [data_path + f"RTS-96-{i}.raw" for i in range(1, 6)]
-    nets = list(map(parser.parse, cases))
-    for net in nets:
-        NR().solve_dc(net)
-    
-    # Get parameters
-    df_param = Parameters().read_excel(data_path + 'RTS-96.xlsx')
-
-    model = TNEP()
-    nets = model.solve(nets, df_param)
+    assert resultado("br_builded") == 4

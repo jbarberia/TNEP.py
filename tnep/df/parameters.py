@@ -9,22 +9,26 @@ class Parameters():
     """
 
     def __init__(self):
-        self.data = None
+        self.candidates = None
+        self.monitored = None
 
     def read_excel(self, filename, sheet='Parametros'):
         """
         Lee un archivo de excel con los parametros
-        """
+        """       
         # Read Excel
         filename = self.check_name(filename)
-        df = pd.read_excel(filename, sheet_name=sheet)
+        df_candidates = pd.read_excel(filename, sheet_name='Candidatas')
+        df_monitored = pd.read_excel(filename, sheet_name='Monitoreadas')
 
         # Check Columns
-        default_col = ['Bus k', 'Bus m', 'id', 'r', 'x', 'b', 'Rating', 'Costo']
-        assert set(default_col) <= set(df.columns)
+        default_col_can = ['Bus k', 'Bus m', 'id', 'r', 'x', 'b', 'Rating', 'Costo']
+        default_col_mon = ['Bus k', 'Bus m', 'id', 'Rating']
+        assert set(default_col_can) <= set(df_candidates.columns)
+        assert set(default_col_mon) <= set(df_monitored.columns)
 
-        self.data = df
-        return self.data
+        self.candidates = df_candidates
+        self.monitored = df_monitored
 
 
     def generate_template(self, filename):
@@ -33,15 +37,17 @@ class Parameters():
         """
         filename = self.check_name(filename)
 
-        # empty template
-        columns = ['Bus k', 'Bus m', 'id', 'r', 'x', 'b', 'Rating', 'Costo']
-        df = pd.DataFrame(columns=columns)
+        # empty template - candidates
+        columns_can = ['Bus k', 'Bus m', 'id', 'r', 'x', 'b', 'Rating', 'Costo']
+        columns_mon = ['Bus k', 'Bus m', 'id', 'Rating']
+        df_can = pd.DataFrame(columns=columns_can)
+        df_mon = pd.DataFrame(columns=columns_mon)
 
         # to excel
         writer = pd.ExcelWriter(filename)
-        df.to_excel(writer, 'Parametros')
+        df_can.to_excel(writer, 'Candidatas')
+        df_mon.to_excel(writer, 'Monitoreadas')
         writer.save()
-
 
     def check_name(self, filename):
         """

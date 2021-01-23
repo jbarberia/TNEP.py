@@ -11,13 +11,15 @@ def test_generate_templates():
 
     default_col = set(['Bus k', 'Bus m', 'id', 'r', 'x', 'b', 'Rating', 'Costo'])
 
-    assert default_col <= set(parameters.data.columns)
+    assert default_col <= set(parameters.candidates.columns)
 
     os.remove('tmp.xlsx')
 
 @pytest.mark.parametrize('filename', parameters)
 def test_parameters(filename):
-    df_param = Parameters().read_excel(filename)
+    parameters = Parameters()
+    parameters.read_excel(filename)
 
-    assert isinstance(df_param, pd.DataFrame)
+    assert isinstance(parameters.candidates, pd.DataFrame)
+    assert isinstance(parameters.monitored, pd.DataFrame)
 
