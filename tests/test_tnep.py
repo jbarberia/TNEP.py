@@ -72,4 +72,4 @@ def test_96():
     model = TNEP()
     nets_solved, resultado = model.solve(nets, parameters)
 
-    assert resultado("br_builded") == 4
+    assert resultado["br_builded"] == 4

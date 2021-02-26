@@ -80,7 +80,7 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
             self.actionGeneradores.setEnabled(True)
             self.actionLineas.setEnabled(True)
 
-            if self.params.data is not None:
+            if self.params.candidates is not None and self.params.monitored is not None:
                 self.Optimizar.setEnabled(True)
 
     def addRAW(self):
@@ -219,9 +219,9 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         )
 
         self.printOutputBar('Optimizacion con resultado: {}'.format(resultado['status']))
-        self.printOutputBar('Se construyeron: {} Lineas'.format(resultado['br_cost']))
-        self.printOutputBar('Costo de lineas: {}'.format(resultado['br_builded']))
-        self.printOutputBar('Funcion Objetivo: {}'.format(resultado['objetive']))
+        self.printOutputBar('Se construyeron: {} Lineas'.format(resultado['br_builded']))
+        self.printOutputBar('Costo de lineas: {}'.format(resultado['br_cost']))
+        self.printOutputBar('Funcion Objetivo: {}'.format(resultado['objective']))
         
         # Escribir las redes en objeto
         for fileName, net in zip(self.scenarios.keys(), solved_nets):
