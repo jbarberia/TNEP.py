@@ -102,10 +102,9 @@ class TNEP():
         prob.solve(
             PULP_CBC_CMD(
                 mip=True,
-                cuts=True,
+                cuts=False,
                 msg=1,
-                options=['barrier'],
-                presolve=True,
+                options=['preprocess off presolve off gomoryCuts off'],
                 )
             )
         
