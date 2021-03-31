@@ -124,7 +124,7 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def createTemplate(self):
-        # TODO
+        # TODO add barras con recorte de demanda
         folder = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
         filename = folder + '\\plantilla.xlsx'
         self.params.generate_template(filename)
@@ -207,7 +207,7 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         pre_dfs = []
         for net in self.scenarios.values():
             self.NR.solve_ac(net)
-            df = self.report.branches(net)
+            df = self.report.branches(net, self.params)
             pre_dfs.append(df)
 
         solved_nets, resultado = self.TNEP.solve(
@@ -232,7 +232,7 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         pos_dfs = []
         for net in solved_nets:
             self.NR.solve_ac(net)
-            df = self.report.branches(net)
+            df = self.report.branches(net, self.params)
             pos_dfs.append(df)
         
         dfs = []
@@ -246,7 +246,7 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
             pos_df = pos_df.loc[:, ['Bus k', 'Bus m', 'id', 'Pos. Opt. Carga %']]
 
             # Join
-            df = pd.merge(pre_df, pos_df, how='right', on=["Bus k", "Bus m", "id"])
+            df = pd.merge(pre_df, pos_df, how='outer', on=["Bus k", "Bus m", "id"])
 
             # Add to list
             dfs.append(df)

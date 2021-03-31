@@ -29,18 +29,17 @@ class TNEP():
 
         # Variables
         w = {(i, bus_i): LpVariable(f'w_{i}_{bus_i}') for (i, bus_i) in ds["ref"]["bus"]}
+        r = {(i, bus_i): LpVariable(f'r_{i}_{bus_i}', lowBound=0) for (i, bus_i) in ds["ref"]["bus_load"]}
         pg = {(i, bus_i, name): LpVariable(f'ps_{i}_{bus_i}_{name}') for (i, bus_i, name) in ds["ref"]["gen"]}
         f = {(i, k, m, ckt): LpVariable(f'f_{i, k, m, ckt}') for (i, k, m, ckt) in ds["ref"]["arcs"]}
         f_ = {(i, k, m, ckt): LpVariable(f'f_vio_{i, k, m, ckt}') for (i, k, m, ckt) in list(set(ds["ref"]["ne_arcs"] + ds["ref"]["mo_arcs"]))}
         phi_ = {(i, k, m, ckt): LpVariable(f'phi_{i, k, m, ckt}') for (i, k, m, ckt) in ds["ref"]["ne_arcs"]}
         x = {(k, m, ckt): LpVariable(f'x{k, m, ckt}', cat='Integer', lowBound=0, upBound=1) for (k, m, ckt) in ds["ref"]["ne_arc"]}
 
-        #r = {(idx, i): LpVariable(f'r_{idx}_{i}', lowBound=0.) for (idx, i) in load_bus_indices} POR EL MOMENTO NO SE TIENE EN CUENTA
-
         # Objective
         prob += (sum(arc['cost'] * x[index] for (index, arc) in ds["ne_br"].items()) 
-                 + penalty * sum(vio for vio in f_.values()))
-                 #+ ens * sum(l_shed for l_shed in r.values()))
+                 + penalty * sum(vio for vio in f_.values())
+                 + ens * sum(l_shed for l_shed in r.values()))
 
         # Constraints
         for i, net in ds["nets"].items():
@@ -49,6 +48,9 @@ class TNEP():
 
                 for gen in bus.generators:
                     dp += pg[i, bus.number, gen.name] if bus.is_slack() else gen.P
+
+                if len(bus.loads) > 0:
+                    dp += r[i, bus.number]
 
                 for load in bus.loads:
                     dp -= load.P
@@ -69,6 +71,8 @@ class TNEP():
             for bus in net.buses:
                 if bus.is_slack():
                     prob += w[i, bus.number] == 0.
+                if len(bus.loads) > 0:
+                    prob += r[i, bus.number] <= sum(load.P for load in bus.loads)
 
         for (i, k, m, ckt) in ds["ref"]["mo_arcs"]:
             rate = ds["mo_br"][(k, m, ckt)]['rate'] * rate_factor
@@ -104,7 +108,7 @@ class TNEP():
                 mip=True,
                 cuts=False,
                 msg=1,
-                options=['preprocess off presolve off gomoryCuts off'],
+                options=['preprocess off presolve on gomoryCuts on'],
                 )
             )
         
@@ -181,6 +185,7 @@ class TNEP():
         # Build indices
         ds["ref"] = {
             "bus": [],
+            "bus_load": [],
             "gen": [],
             "arcs": [],
             "mo_arcs": [],
@@ -191,6 +196,9 @@ class TNEP():
         for (i, net) in ds["nets"].items():
             for bus in net.buses:
                 ds["ref"]["bus"].append((i, bus.number))
+
+                if len(bus.loads) > 0:
+                    ds["ref"]["bus_load"].append((i, bus.number))
 
                 if bus.is_slack():
                     for gen in bus.generators:

@@ -82,10 +82,21 @@ class Reports():
 
         return df
 
-    def branches(self, net: pfnet.Network):
+    def branches(self, net: pfnet.Network, parameters=None):
         """
         Reporte de todas las lineas de una red
         """
+        keep = []
+        if parameters:
+            for (_, row) in parameters.monitored.iterrows():
+                k, m = int(row['Bus k']), int(row['Bus m'])
+                try:
+                    ckt = str(int(row['id']))
+                except ValueError:
+                    ckt = str(row['id'])
+                keep.append((k, m, ckt))
+            
+
         df = pd.DataFrame(columns=['Bus k', 'Bus m', 'id', 'Carga %', 'Rating', 'P loss', 'Q loss'])
         for br in reversed(net.branches):
 
@@ -94,10 +105,15 @@ class Reports():
             else:
                 carga = None
 
+            # Skip not monitored branches
+            k, m, ckt = br.bus_k.number, br.bus_m.number, br.name.strip()
+            if (k, m, ckt) not in keep and parameters:
+                continue
+
             df = df.append({
-                    "Bus k" : br.bus_k.number,
-                    "Bus m" : br.bus_m.number,
-                    "id" : br.name,
+                    "Bus k" : k,
+                    "Bus m" : m,
+                    "id" : br.name.strip(),
                     "Carga %" : carga,
                     "Rating" : br.get_rating('A') * net.base_power,
                     "P loss" : (br.get_P_km() + br.get_P_mk()) * net.base_power,
