@@ -24,6 +24,27 @@ def test_basic():
         assert len(net.branches) == 3
 
 
+def test_basic_ens():
+    """
+    To debug the problem with ens
+    """
+    # Get cases
+    parser = Parser()
+    cases = [data_path + i for i in ['test_3_max.raw', 'test_3_min.raw']]
+    nets = list(map(parser.parse, cases))
+    
+    # Get parameters
+    parameters = Parameters()
+    parameters.read_excel(data_path + 'test_3_ens.xlsx')
+
+    model = TNEP()
+    model.options['ens'] = 1e2
+    nets_solved, resultado = model.solve(nets, parameters)
+
+    for net in nets_solved:
+        assert len(net.branches) == 2
+
+
 def test_tnep_solution():
     """
     Para verificar la solucion,

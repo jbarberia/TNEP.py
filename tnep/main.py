@@ -199,17 +199,17 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def runTNEP(self):
-        rate_percentage = float(self.ratingPercentage.text())
-        ens = float(self.ENS.text())
-        flow_penalty = float(self.flowPenalty.text())
-
+        self.TNEP.options['rate factor'] = float(self.ratingPercentage.text())
+        self.TNEP.options['penalty'] = float(self.flowPenalty.text())
+        self.TNEP.options['ens'] = float(self.ENS.text())
+        
         # PreProceso
         pre_dfs = []
         for net in self.scenarios.values():
             self.NR.solve_ac(net)
             df = self.report.branches(net, self.params)
             pre_dfs.append(df)
-
+        
         solved_nets, resultado = self.TNEP.solve(
             self.scenarios.values(),
             self.params,
