@@ -210,7 +210,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>1.00</string>
+      <string>0.95</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -252,7 +252,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>1000</string>
+      <string>150e3</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -268,7 +268,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>1000</string>
+      <string>1e6</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>

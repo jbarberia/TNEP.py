@@ -213,9 +213,6 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         solved_nets, resultado = self.TNEP.solve(
             self.scenarios.values(),
             self.params,
-            rate_percentage,
-            flow_penalty,
-            ens
         )
 
         self.printOutputBar('Optimizacion con resultado: {}'.format(resultado['status']))

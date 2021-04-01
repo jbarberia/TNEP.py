@@ -1,0 +1,1 @@
+pyuic5 -x tnep\ui\UI.ui -o tnep\ui\TNEP_UI.py
