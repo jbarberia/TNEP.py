@@ -8,6 +8,8 @@ class Parser():
 
     def __init__(self):
         self.parser_raw = pf.PyParserRAW()
+        self.parser_raw.set('keep_all_out_of_service', True)
+
         self.parser_mat = pf.PyParserMAT()
 
     def select_parser(self, ext):

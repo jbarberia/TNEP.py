@@ -11,15 +11,20 @@ class TNEP():
     """
 
     def __init__(self):
-        pass
+        self.options = {
+            'rate factor': 0.8,
+            'penalty': 2e3,
+            'ens': 2e3
+        }
 
-    def solve(self, nets, parameters, rate_factor=0.8, penalty=2e3, ens=1e4):
+    def solve(self, nets, parameters):
         """
         Resuelve el TNEP, devuelve un listado de PFNET Networks
         con la solucion
 
         parameters es un objeto del tipo Parameters
         """
+        options = self.options
 
         # Create useful data structure
         ds = self._create_data_structure(nets, parameters)
@@ -29,18 +34,17 @@ class TNEP():
 
         # Variables
         w = {(i, bus_i): LpVariable(f'w_{i}_{bus_i}') for (i, bus_i) in ds["ref"]["bus"]}
+        r = {(i, bus_i): LpVariable(f'r_{i}_{bus_i}', lowBound=0) for (i, bus_i) in ds["ref"]["bus"]}
         pg = {(i, bus_i, name): LpVariable(f'ps_{i}_{bus_i}_{name}') for (i, bus_i, name) in ds["ref"]["gen"]}
         f = {(i, k, m, ckt): LpVariable(f'f_{i, k, m, ckt}') for (i, k, m, ckt) in ds["ref"]["arcs"]}
         f_ = {(i, k, m, ckt): LpVariable(f'f_vio_{i, k, m, ckt}') for (i, k, m, ckt) in list(set(ds["ref"]["ne_arcs"] + ds["ref"]["mo_arcs"]))}
         phi_ = {(i, k, m, ckt): LpVariable(f'phi_{i, k, m, ckt}') for (i, k, m, ckt) in ds["ref"]["ne_arcs"]}
         x = {(k, m, ckt): LpVariable(f'x{k, m, ckt}', cat='Integer', lowBound=0, upBound=1) for (k, m, ckt) in ds["ref"]["ne_arc"]}
 
-        #r = {(idx, i): LpVariable(f'r_{idx}_{i}', lowBound=0.) for (idx, i) in load_bus_indices} POR EL MOMENTO NO SE TIENE EN CUENTA
-
         # Objective
         prob += (sum(arc['cost'] * x[index] for (index, arc) in ds["ne_br"].items()) 
-                 + penalty * sum(vio for vio in f_.values()))
-                 #+ ens * sum(l_shed for l_shed in r.values()))
+                 + options['penalty'] * sum(vio for vio in f_.values())
+                 + options['ens'] * sum(ds['c_k'][i[0]] * ds['crf'] * l_shed for i, l_shed in r.items()))
 
         # Constraints
         for i, net in ds["nets"].items():
@@ -49,6 +53,10 @@ class TNEP():
 
                 for gen in bus.generators:
                     dp += pg[i, bus.number, gen.name] if bus.is_slack() else gen.P
+
+                # Recorte de carga  
+                dp += r[i, bus.number]
+                prob += r[i, bus.number] <= sum(load.P for load in bus.loads) * ds['load bus'].get(bus.number, 0.)
 
                 for load in bus.loads:
                     dp -= load.P
@@ -69,9 +77,11 @@ class TNEP():
             for bus in net.buses:
                 if bus.is_slack():
                     prob += w[i, bus.number] == 0.
+                if len(bus.loads) > 0:
+                    prob += r[i, bus.number] <= sum(load.P for load in bus.loads)
 
         for (i, k, m, ckt) in ds["ref"]["mo_arcs"]:
-            rate = ds["mo_br"][(k, m, ckt)]['rate'] * rate_factor
+            rate = ds["mo_br"][(k, m, ckt)]['rate'] * options['rate factor']
             prob += f[i, k, m, ckt] <= rate + f_[i, k, m, ckt]
             prob += f[i, k, m, ckt] >= -rate - f_[i, k, m, ckt]
             prob += f_[i, k, m, ckt] >= 0
@@ -80,7 +90,7 @@ class TNEP():
 
         for (i, k, m, ckt) in ds["ref"]["ne_arcs"]:
             br = ds["ne_br"][(k, m, ckt)]['br']
-            rate = ds["ne_br"][(k, m, ckt)]['rate'] * rate_factor
+            rate = ds["ne_br"][(k, m, ckt)]['rate'] * options['rate factor']
 
             M = 1e3
             prob += f[i, k, m, ckt]+br.b*(w[i, k]-w[i, m]) <= (1-x[k, m, ckt])*M
@@ -102,14 +112,12 @@ class TNEP():
         prob.solve(
             PULP_CBC_CMD(
                 mip=True,
-                cuts=True,
-                msg=1,
-                options=['barrier'],
-                presolve=True,
+                cuts=False,
+                msg=0,
+                options=['preprocess off presolve on gomoryCuts on'],
                 )
             )
         
-
         # Get solution details
         ds["solution"] = {
             'objective': prob.objective.value(),
@@ -119,7 +127,6 @@ class TNEP():
         }
 
         # Update Branches in Network
-
         for net in ds["nets"].values():
             build_branches = []
             for (k, m, ckt), build in x.items():
@@ -137,6 +144,15 @@ class TNEP():
 
             net.add_branches(build_branches)
             net.update_properties()
+
+        # Update load shed
+        for i, i_bus in r.keys():
+            net = ds["nets"][i]
+            bus = net.get_bus_from_number(i_bus)
+            if sum(l.P for l in bus.loads) > 0:
+                load = bus.loads[0]
+                load.P = load.P - r[i, i_bus].value()
+            net.update_properties()        
         
         return list(ds["nets"].values()), ds["solution"]
 
@@ -145,6 +161,17 @@ class TNEP():
 
         ds = {}
         ds["nets"] = {i: net.get_copy() for i, net in enumerate(nets)}
+
+        # ENS coefficient
+        if not hasattr(self, "D_k"): self.D_k = [0] * len(ds["nets"])
+        if not hasattr(self, "F_k"): self.F_k = [0] * len(ds["nets"])
+        if not hasattr(self, "T_k"): self.T_k = [0] * len(ds["nets"])
+
+        ds["c_k"] = {i: D*F*T/24 for i, (D, F, T) in enumerate(zip(self.D_k, self.F_k, self.T_k))}
+
+        r = self.r if hasattr(self, "r") else 1
+        n = self.n if hasattr(self, "n") else 0
+        ds["crf"] = ((1+r)**n - 1)/(r*(1+r)**n)
 
         # strip whitespaces in branches for easy handling of data
         for (i, net) in ds["nets"].items():
@@ -178,6 +205,13 @@ class TNEP():
             br.ratingA = rate
             br.in_service = True
             ds["ne_br"][k, m, ckt] = {'br': br, 'cost': row['Costo'], 'rate': rate}
+
+        ds["load bus"] = {}
+        for (_, row) in parameters.loads.iterrows():
+            i = int(row['Bus'])
+            percentage = float(row['Recorte Max'])
+            ds["load bus"][i] = percentage
+
 
         # Build indices
         ds["ref"] = {
