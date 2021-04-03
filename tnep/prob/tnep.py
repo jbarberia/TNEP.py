@@ -44,7 +44,7 @@ class TNEP():
         # Objective
         prob += (sum(arc['cost'] * x[index] for (index, arc) in ds["ne_br"].items()) 
                  + options['penalty'] * sum(vio for vio in f_.values())
-                 + options['ens'] * sum(l_shed for l_shed in r.values()))
+                 + options['ens'] * sum(ds['c_k'][i[0]] * ds['crf'] * l_shed for i, l_shed in r.items()))
 
         # Constraints
         for i, net in ds["nets"].items():
@@ -144,6 +144,15 @@ class TNEP():
 
             net.add_branches(build_branches)
             net.update_properties()
+
+        # Update load shed
+        for i, i_bus in r.keys():
+            net = ds["nets"][i]
+            bus = net.get_bus_from_number(i_bus)
+            if sum(l.P for l in bus.loads) > 0:
+                load = bus.loads[0]
+                load.P = load.P - r[i, i_bus].value()
+            net.update_properties()        
         
         return list(ds["nets"].values()), ds["solution"]
 
@@ -152,6 +161,17 @@ class TNEP():
 
         ds = {}
         ds["nets"] = {i: net.get_copy() for i, net in enumerate(nets)}
+
+        # ENS coefficient
+        if not hasattr(self, "D_k"): self.D_k = [0] * len(ds["nets"])
+        if not hasattr(self, "F_k"): self.F_k = [0] * len(ds["nets"])
+        if not hasattr(self, "T_k"): self.T_k = [0] * len(ds["nets"])
+
+        ds["c_k"] = {i: D*F*T/24 for i, (D, F, T) in enumerate(zip(self.D_k, self.F_k, self.T_k))}
+
+        r = self.r if hasattr(self, "r") else 1
+        n = self.n if hasattr(self, "n") else 0
+        ds["crf"] = ((1+r)**n - 1)/(r*(1+r)**n)
 
         # strip whitespaces in branches for easy handling of data
         for (i, net) in ds["nets"].items():

@@ -206,6 +206,14 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def runTNEP(self):
+        rows = self.tableCasos.rowCount()
+        self.TNEP.D_k = [float(self.tableCasos.item(i, 1).text()) for i in range(rows)]
+        self.TNEP.T_k = [float(self.tableCasos.item(i, 2).text()) for i in range(rows)]
+        self.TNEP.F_k = [float(self.tableCasos.item(i, 3).text()) for i in range(rows)]
+
+        self.TNEP.r = float(self.tasaDescuento.text())
+        self.TNEP.n = float(self.anios.text())
+
         self.TNEP.options['rate factor'] = float(self.ratingPercentage.text())
         self.TNEP.options['penalty'] = float(self.flowPenalty.text())
         self.TNEP.options['ens'] = float(self.ENS.text())
@@ -219,7 +227,7 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         
         solved_nets, resultado = self.TNEP.solve(
             self.scenarios.values(),
-            self.params,
+            self.params
         )
 
         self.printOutputBar('Optimizacion con resultado: {}'.format(resultado['status']))
