@@ -70,28 +70,35 @@
       <string>Quitar</string>
      </property>
     </widget>
-    <widget class="QListWidget" name="listCasos">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>31</y>
-       <width>281</width>
-       <height>211</height>
-      </rect>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_2">
+    <widget class="QTableWidget" name="tableCasos">
      <property name="geometry">
       <rect>
        <x>10</x>
        <y>10</y>
-       <width>61</width>
-       <height>16</height>
+       <width>271</width>
+       <height>231</height>
       </rect>
      </property>
-     <property name="text">
-      <string>Escenarios</string>
-     </property>
+     <column>
+      <property name="text">
+       <string>Escenario</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>D_k</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>F_k</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>T_k</string>
+      </property>
+     </column>
     </widget>
    </widget>
    <widget class="QFrame" name="frame_2">

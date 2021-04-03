@@ -91,6 +91,9 @@ def test_96():
     parameters.read_excel(data_path + 'RTS-96.xlsx')
 
     model = TNEP()
+    model.options['ens'] = 1e6
+    model.options['penalty'] = 5e2
+    model.options['rate factor'] = 0.56
     nets_solved, resultado = model.solve(nets, parameters)
 
     assert resultado["br_builded"] == 4

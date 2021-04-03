@@ -113,7 +113,7 @@ class TNEP():
             PULP_CBC_CMD(
                 mip=True,
                 cuts=False,
-                msg=1,
+                msg=0,
                 options=['preprocess off presolve on gomoryCuts on'],
                 )
             )
