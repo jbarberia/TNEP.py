@@ -11,7 +11,8 @@ def test_parser_read(filename):
     
     assert isinstance(net, pfnet.Network)
 
-@pytest.mark.parametrize('filename', [case for case in cases if 'RTS' not in case])
+# Skip Mendoza and RTS because of SW shunts aproximation
+@pytest.mark.parametrize('filename', [case for case in cases if not ('RTS' in case or 'Mendoza' in case)])
 def test_parser_write(filename):
     parser = Parser()
     net1 = parser.parse(filename)

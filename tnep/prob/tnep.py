@@ -49,6 +49,8 @@ class TNEP():
         # Constraints
         for i, net in ds["nets"].items():
             for bus in net.buses: # Power Balance
+                if not bus.is_in_service():
+                    continue
                 dp = 0.0
 
                 for gen in bus.generators:
@@ -56,11 +58,11 @@ class TNEP():
 
                 # Recorte de carga  
                 dp += r[i, bus.number]
-                prob += r[i, bus.number] <= sum(load.P for load in bus.loads) * ds['load bus'].get(bus.number, 0.)
 
                 for load in bus.loads:
                     dp -= load.P
 
+                # Se podria optimizar esta parte
                 for (j, k, m, ckt) in ds["ref"]["arcs"]: # Arcs es la union de lineas + lineas candidatos
                     if j == i:
                         if k == bus.number:
@@ -71,14 +73,18 @@ class TNEP():
                 prob += dp == 0
 
             for br in net.branches: # Lineas comunes y a monitorear
+                if not br.is_in_service():
+                    continue
                 k, m, ckt = br.bus_k.number, br.bus_m.number, br.name
                 prob += f[i, k, m, ckt] == -br.b*(w[i, k]-w[i, m])
             
             for bus in net.buses:
+                if not bus.is_in_service():
+                    continue
+
                 if bus.is_slack():
                     prob += w[i, bus.number] == 0.
-                if len(bus.loads) > 0:
-                    prob += r[i, bus.number] <= sum(load.P for load in bus.loads)
+                prob += r[i, bus.number] <= sum(load.P for load in bus.loads if load.is_in_service()) * ds['load bus'].get(bus.number, 0.)
 
         for (i, k, m, ckt) in ds["ref"]["mo_arcs"]:
             rate = ds["mo_br"][(k, m, ckt)]['rate'] * options['rate factor']
@@ -87,7 +93,6 @@ class TNEP():
             prob += f_[i, k, m, ckt] >= 0
             prob += f_[i, k, m, ckt] <= 1.5
                 
-
         for (i, k, m, ckt) in ds["ref"]["ne_arcs"]:
             br = ds["ne_br"][(k, m, ckt)]['br']
             rate = ds["ne_br"][(k, m, ckt)]['rate'] * options['rate factor']
@@ -113,7 +118,7 @@ class TNEP():
             PULP_CBC_CMD(
                 mip=True,
                 cuts=False,
-                msg=0,
+                msg=1,
                 options=['preprocess off presolve on gomoryCuts on'],
                 )
             )
@@ -212,7 +217,6 @@ class TNEP():
             percentage = float(row['Recorte Max'])
             ds["load bus"][i] = percentage
 
-
         # Build indices
         ds["ref"] = {
             "bus": [],
@@ -225,6 +229,8 @@ class TNEP():
         br_indices = []
         for (i, net) in ds["nets"].items():
             for bus in net.buses:
+                if not bus.is_in_service():
+                    continue
                 ds["ref"]["bus"].append((i, bus.number))
 
                 if bus.is_slack():
@@ -232,6 +238,8 @@ class TNEP():
                         ds["ref"]["gen"].append((i, bus.number, gen.name))
 
             for br in net.branches:
+                if not br.is_in_service():
+                    continue
                 k, m, ckt = br.bus_k.number, br.bus_m.number, br.name
                 br_indices.append((i, k, m ,ckt))
 

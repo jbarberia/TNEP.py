@@ -93,7 +93,26 @@ def test_96():
     model = TNEP()
     model.options['ens'] = 1e6
     model.options['penalty'] = 5e2
-    model.options['rate factor'] = 0.56
+    model.options['rate factor'] = 0.7
     nets_solved, resultado = model.solve(nets, parameters)
 
     assert resultado["br_builded"] == 4
+
+
+def test_mendoza():
+    """
+    To debug the problem
+    """
+    # Get cases
+    parser = Parser()
+    cases = [data_path + 'Mendoza.raw']
+    nets = list(map(parser.parse, cases))
+    
+    # Get parameters
+    parameters = Parameters()
+    parameters.read_excel(data_path + 'Mendoza.xlsx')
+
+    model = TNEP()
+    nets_solved, resultado = model.solve(nets, parameters)
+
+    assert(resultado['status'] == 1)

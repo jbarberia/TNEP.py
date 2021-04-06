@@ -93,7 +93,7 @@
      </property>
      <column>
       <property name="text">
-       <string>Escenario</string>
+       <string>Caso</string>
       </property>
      </column>
      <column>
@@ -258,7 +258,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>Penalidad Congestion:</string>
+      <string>Penalidad Sobrecarga:</string>
      </property>
     </widget>
     <widget class="QLineEdit" name="ENS">
