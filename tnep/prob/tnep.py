@@ -128,6 +128,7 @@ class TNEP():
             'objective': prob.objective.value(),
             'br_builded': sum(var.value() for var in x.values()),
             'br_cost': sum(x[index].value() * br['cost'] for (index, br) in ds["ne_br"].items()),
+            'r_dem': sum(var.value() for var in r.values()),
             'status': prob.status
         }
 
