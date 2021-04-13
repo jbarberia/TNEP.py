@@ -57,7 +57,7 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def enableButtons(self):
         """Desbloquea los botones para correr flujos"""
-        if self.listCasos.count() == 0:
+        if not self.tableCasos.rowCount() >= 1:
             self.generarResultados.setEnabled(False)
 
             self.actionResolver_NR.setEnabled(False)
@@ -91,7 +91,12 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
             if self.scenarios.get(fileName) == None:
                 self.scenarios[fileName] = self.parser.parse(fileName)
                 self.printOutputBar("Caso Añadido: " + fileName)
-                self.listCasos.addItem(fileName)
+                row_pos = self.tableCasos.rowCount()
+                self.tableCasos.insertRow(row_pos)
+                item = QtWidgets.QTableWidgetItem(str(fileName))
+                item.setFlags(QtCore.Qt.ItemIsEditable)
+                self.tableCasos.setItem(row_pos, 0, item)                
+
                 self.enableButtons()
             else:
                 self.printOutputBar("Caso existente: Se omite la entrada")
@@ -99,19 +104,21 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
             pass
 
     def removeRAW(self):
-        selectedCases = self.listCasos.selectedItems()
-        
-        for item in selectedCases:
-            net = self.scenarios.pop(item.text())
-            self.printOutputBar("Caso Removido: " + item.text())
-            self.listCasos.takeItem(self.listCasos.row(item))
-        self.enableButtons()
+        index_list = []                                                          
+        for row_index in self.tableCasos.selectionModel().selectedRows():       
+            index = QtCore.QPersistentModelIndex(row_index)         
+            index_list.append(index)   
+        for index in index_list:                                      
+            filename = index.data()
+            self.scenarios.pop(filename)
+            self.tableCasos.removeRow(index.row())
+            self.printOutputBar("Caso Removido: " + filename)
+        self.enableButtons()         
 
 
     def addExcel(self):
         fileName, _ = QFileDialog.getOpenFileName(self,"Seleccione Lineas Candidatos", "","Excel (*.xlsx);")
         fileName = '/'.join(fileName.split('\\'))
-
         try:
             self.params.read_excel(fileName)
             self.printOutputBar("Parametros Añadidos: " + fileName)
@@ -199,6 +206,14 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def runTNEP(self):
+        rows = self.tableCasos.rowCount()
+        self.TNEP.D_k = [float(self.tableCasos.item(i, 1).text()) for i in range(rows)]
+        self.TNEP.T_k = [float(self.tableCasos.item(i, 2).text()) for i in range(rows)]
+        self.TNEP.F_k = [float(self.tableCasos.item(i, 3).text()) for i in range(rows)]
+
+        self.TNEP.r = float(self.tasaDescuento.text())
+        self.TNEP.n = float(self.anios.text())
+
         self.TNEP.options['rate factor'] = float(self.ratingPercentage.text())
         self.TNEP.options['penalty'] = float(self.flowPenalty.text())
         self.TNEP.options['ens'] = float(self.ENS.text())
@@ -212,7 +227,7 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         
         solved_nets, resultado = self.TNEP.solve(
             self.scenarios.values(),
-            self.params,
+            self.params
         )
 
         self.printOutputBar('Optimizacion con resultado: {}'.format(resultado['status']))
@@ -251,6 +266,7 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tnepReport = dfs
         self.reporteTNEP.setEnabled(True)
         self.generarResultados.setEnabled(True)
+
 
     def TNEPReport(self):
         for df, filename in zip(self.tnepReport, self.solved_nets):

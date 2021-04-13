@@ -44,6 +44,11 @@ def test_basic_ens():
     for net in nets_solved:
         assert len(net.branches) == 2
 
+    load_p = sum([sum(l.P for l in net.loads) for net in nets])
+    load_p_solved = sum([sum(l.P for l in net.loads) for net in nets_solved])
+
+    assert load_p - load_p_solved - resultado['r_dem'] <= 1e-2
+
 
 def test_tnep_solution():
     """
@@ -84,13 +89,35 @@ def test_96():
         NR().solve_dc(net)
 
     dfs = list(map(Reports().branches, nets))
-    max_per_case = [max(df['Carga %']) for df in dfs]
     
     # Get parameters
     parameters = Parameters()
     parameters.read_excel(data_path + 'RTS-96.xlsx')
 
     model = TNEP()
+    model.options['ens'] = 1e6
+    model.options['penalty'] = 5e2
+    model.options['rate factor'] = 0.7
     nets_solved, resultado = model.solve(nets, parameters)
 
     assert resultado["br_builded"] == 4
+
+
+def test_mendoza():
+    """
+    To debug the problem
+    """
+    # Get cases
+    parser = Parser()
+    cases = [data_path + 'Mendoza.raw']
+    nets = list(map(parser.parse, cases))
+    
+    # Get parameters
+    parameters = Parameters()
+    parameters.read_excel(data_path + 'Mendoza.xlsx')
+
+    # Solve model
+    model = TNEP()
+    nets_solved, results = model.solve(nets, parameters)
+
+    assert(results['status'] == 1)
