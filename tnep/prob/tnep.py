@@ -158,6 +158,7 @@ class TNEP():
             if sum(l.P for l in bus.loads) > 0:
                 load = bus.loads[0]
                 load.P = load.P - r[i, i_bus].value()
+                load.update_P_components(1, 0, 0)
             net.update_properties()        
         
         return list(ds["nets"].values()), ds["solution"]
