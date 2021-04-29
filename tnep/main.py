@@ -125,13 +125,12 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
             self.excelCandidatos.setText(fileName)
             self.Optimizar.setEnabled(True)
             self.enableButtons()
-        except (AssertionError, KeyError):
+        except (ValueError, AssertionError, KeyError):
             self.printOutputBar("Parametros Invalidos: " + fileName)
             self.printOutputBar("Por favor genere la plantilla desde el botón")
 
 
     def createTemplate(self):
-        # TODO add barras con recorte de demanda
         folder = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
         filename = folder + '\\plantilla.xlsx'
         self.params.generate_template(filename)
@@ -229,10 +228,12 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
             self.scenarios.values(),
             self.params
         )
-
+        self.printOutputBar('----------------------------------------------------------')
         self.printOutputBar('Optimizacion con resultado: {}'.format(resultado['status']))
         self.printOutputBar('Se construyeron: {} Lineas'.format(resultado['br_builded']))
         self.printOutputBar('Costo de lineas: {}'.format(resultado['br_cost']))
+        self.printOutputBar('Penalidad sobrecarga: {}'.format(resultado['overload']))
+        self.printOutputBar('ENS: {}'.format(resultado['ens']))
         self.printOutputBar('Funcion Objetivo: {}'.format(resultado['objective']))
         
         # Escribir las redes en objeto

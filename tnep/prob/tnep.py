@@ -128,7 +128,9 @@ class TNEP():
             'objective': prob.objective.value(),
             'br_builded': sum(var.value() for var in x.values()),
             'br_cost': sum(x[index].value() * br['cost'] for (index, br) in ds["ne_br"].items()),
+            'overload': options['penalty'] * sum(vio.value() for vio in f_.values()),
             'r_dem': sum(var.value() for var in r.values()),
+            'ens': options['ens'] * sum(ds['c_k'][i[0]] * ds['crf'] * l_shed.value() for i, l_shed in r.items()),
             'status': prob.status
         }
 
