@@ -125,7 +125,7 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
             self.excelCandidatos.setText(fileName)
             self.Optimizar.setEnabled(True)
             self.enableButtons()
-        except (AssertionError, KeyError):
+        except (ValueError, AssertionError, KeyError):
             self.printOutputBar("Parametros Invalidos: " + fileName)
             self.printOutputBar("Por favor genere la plantilla desde el botón")
 
