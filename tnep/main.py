@@ -157,6 +157,10 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
                 sheet = self.outputHoja.text() + '' + scenario.split('/')[-1]
                 self.report.to_excel(df, fileName, sheet)
                 self.printOutputBar("Reporte escrito en la hoja: {}".format(sheet))
+            if len(self.lastReport) > len(self.scenarios.keys()):
+                sheet = self.outputHoja.text() + 'Recorte de demanda'
+                self.report.to_excel(self.lastReport[-1], fileName, sheet)
+                self.printOutputBar("Reporte escrito en la hoja: {}".format(sheet))
         else:
             self.printOutputBar("Todavia no se corrio ningun reporte")
         
@@ -264,6 +268,13 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
             # Add to list
             dfs.append(df)
 
+        # Add df of load shed
+        dfs.append(self.report.load_shed(
+            list(self.scenarios.values()),
+            list(self.solved_nets.values()),
+            self.params
+        ))
+
         self.tnepReport = dfs
         self.reporteTNEP.setEnabled(True)
         self.generarResultados.setEnabled(True)
@@ -273,6 +284,8 @@ class mainProgram(QtWidgets.QMainWindow, Ui_MainWindow):
         for df, filename in zip(self.tnepReport, self.solved_nets):
             self.printOutputBar(filename + ":")
             self.printOutputBar(df.to_string())
+        # El ultimo df son los recortes de carga
+        self.printOutputBar(self.tnepReport[-1].to_string())
         self.lastReport = self.tnepReport
         
 
