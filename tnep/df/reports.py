@@ -121,3 +121,24 @@ class Reports():
                 }, ignore_index=True)
                 
         return df
+
+        
+    def load_shed(self, nets, solved_nets, parameters):
+        """
+        Revisa los cortes de carga sobre las lineas monitoreadas
+        """
+        casos = [f"Caso {i+1}" for i in range(len(nets))]
+        df = pd.DataFrame(columns=['Bus'] + casos)
+
+        for (_, row) in parameters.loads.iterrows(): 
+            bus_num = int(row['Bus'])
+            bus_dct = {'Bus': bus_num}
+            for i, (net, net_solved) in enumerate(zip(nets, solved_nets)):
+                bus = net.get_bus_from_number(bus_num)
+                bus_solved = net_solved.get_bus_from_number(bus_num)
+                bus_dct[f'Caso {i+1}'] = sum(load.P for load in bus.loads) - sum(load.P for load in bus_solved.loads)
+            # print(bus_dct)
+            df = df.append(bus_dct, ignore_index=True)
+        
+        return df
+
