@@ -100,7 +100,7 @@ class Reports():
         df = pd.DataFrame(columns=['Bus k', 'Bus m', 'id', 'Carga %', 'Rating', 'P loss', 'Q loss'])
         for br in reversed(net.branches):
 
-            if br.get_rating('A') > 0:
+            if br.get_rating('A') > 0 and br.is_in_service():
                 carga = max(br.get_S_km_mag(), br.get_S_mk_mag()) / br.get_rating('A') * 100
             else:
                 carga = None
