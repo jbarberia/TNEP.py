@@ -1,6 +1,21 @@
 # TNEP.py
 
-Este paquete sirve para realizar optimizaciones para la planificacion de la expansion del sistema de transmisión.
+Este paquete sirve para realizar optimizaciones para la planificacion de la expansion del sistema de transmisión. El cual fue presentado en el (2021 IEEE CHILE COM)[https://doi.org/10.1109/CHILECON54041.2021.9703011]
+
+```
+@INPROCEEDINGS{9703011,
+  author={Barbería, Juan Luis and Tomas Anello, Mariano and del Rosso, Alberto},
+  booktitle={2021 IEEE CHILEAN Conference on Electrical, Electronics Engineering, Information and Communication Technologies (CHILECON)}, 
+  title={Computational Tool for Optimal Expansion of Transmission Networks}, 
+  year={2021},
+  volume={},
+  number={},
+  pages={1-5},
+  doi={10.1109/CHILECON54041.2021.9703011}}
+```
+
+La presentacion del trabajo pueden encontrarlos dentro del repositorio en `slides.pdf`.
+
 
 ![tnep](./tests/data/tnep.png)
 
